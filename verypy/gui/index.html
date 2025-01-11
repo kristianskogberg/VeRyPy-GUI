@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeRyPy VRP Solver</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>VeRyPy VRP Solver</h1>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Problem Input</h2>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label for="vrp-file">Upload .vrp file</label>
+                        <input type="file" id="vrp-file" accept=".vrp">
+                    </div>
+                    <div class="form-group">
+                        <label for="capacity">Vehicle Capacity</label>
+                        <input type="number" id="capacity" placeholder="Enter vehicle capacity">
+                    </div>
+                    <div class="form-group">
+                        <label>Add Locations Manually</label>
+                        <div class="form-group">
+                            <input type="number" id="x-coord" placeholder="X Coordinate">
+                            <input type="number" id="y-coord" placeholder="Y Coordinate">
+                        </div>
+                        <button id="add-location">Add Location</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="locations">Current Locations</label>
+                        <textarea id="locations" rows="5" readonly></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="algorithm">Select Algorithm</label>
+                        <select id="algorithm">
+                            <option value="">Choose an algorithm</option>
+                            <option value="nearest-neighbor">Nearest Neighbor</option>
+                            <option value="clarke-wright">Clarke-Wright Savings</option>
+                            <option value="simulated-annealing">Simulated Annealing</option>
+                        </select>
+                    </div>
+                    <button id="solve">Solve VRP</button>
+                    <button id="reset">Reset</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Statistics</h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="statistics-grid">
+                            <div>
+                                <h3>Total Distance</h3>
+                                <p>1234.5 km</p>
+                            </div>
+                            <div>
+                                <h3>Total Time</h3>
+                                <p>45.6 hours</p>
+                            </div>
+                            <div>
+                                <h3>Vehicle Utilization</h3>
+                                <p>87.5%</p>
+                            </div>
+                            <div>
+                                <h3>Computation Time</h3>
+                                <p>2.3 seconds</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Visualization</h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="visualization">
+                            <div>
+                                <div>📍</div>
+                                <div>🚚</div>
+                                <div>Visualization Area</div>
+                            </div>
+                        </div>
+                        <div class="playback-controls">
+                            <button id="playback">Play</button>
+                            <span>Stage: <span id="current-stage">0</span> / 10</span>
+                        </div>
+                        <input type="range" id="stage-slider" min="0" max="10" value="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="scripts.js"></script>
+</body>
+</html>
