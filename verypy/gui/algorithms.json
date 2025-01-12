@@ -1,0 +1,93 @@
+[
+  {
+    "name": "Nearest Neighbor",
+    "value": "nearest_neighbor",
+    "import_path": "verypy.classic_heuristics.nearest_neighbor",
+    "function_name": "nearest_neighbor_init",
+    "parameters": ["D", "d", "C", "L", "emerging_route_count"]
+  },
+  {
+    "name": "Simulated Annealing",
+    "value": "simulated_annealing",
+    "import_path": "verypy.classic_heuristics.simulated_annealing",
+    "function_name": "simulated_annealing_init",
+    "parameters": ["D", "d", "C", "L", "initial_temperature", "cooling_rate"]
+  },
+  {
+    "name": "Parallel Savings",
+    "value": "parallel_savings",
+    "import_path": "verypy.classic_heuristics.parallel_savings",
+    "function_name": "parallel_savings_init",
+    "parameters": ["D", "d", "C", "L"]
+  },
+  {
+    "name": "Sequential Savings",
+    "value": "sequential_savings",
+    "import_path": "verypy.classic_heuristics.sequential_savings",
+    "function_name": "sequential_savings_init",
+    "parameters": ["D", "d", "C", "L", "lambda_multiplier"]
+  },
+  {
+    "name": "Paessens Savings",
+    "value": "paessens_savings",
+    "import_path": "verypy.classic_heuristics.paessens_savings",
+    "function_name": "paessens_savings_init",
+    "parameters": ["D", "d", "C", "L", "minimize_K"]
+  },
+  {
+    "name": "Gillet-Miller Sweep",
+    "value": "gillet_miller_sweep",
+    "import_path": "verypy.classic_heuristics.gillet_miller_sweep",
+    "function_name": "gillet_miller_init",
+    "parameters": ["D", "d", "C", "L", "minimize_K"]
+  },
+  {
+    "name": "Wren-Holliday Sweep",
+    "value": "wren_holliday_sweep",
+    "import_path": "verypy.classic_heuristics.wren_holliday_sweep",
+    "function_name": "wren_holliday_init",
+    "parameters": ["D", "d", "C", "L", "minimize_K"]
+  },
+  {
+    "name": "Tyagi Nearest Neighbor",
+    "value": "tyagi_nearest_neighbor",
+    "import_path": "verypy.classic_heuristics.tyagi_nearest_neighbor",
+    "function_name": "tyagi_init",
+    "parameters": ["D", "d", "C", "L"]
+  },
+  {
+    "name": "Route-First Cluster-Second",
+    "value": "route_first_cluster_second",
+    "import_path": "verypy.classic_heuristics.rfcs",
+    "function_name": "route_first_cluster_second_init",
+    "parameters": ["D", "d", "C", "L", "minimize_K"]
+  },
+  {
+    "name": "Petal VRP",
+    "value": "petal_vrp",
+    "import_path": "verypy.classic_heuristics.petalvrp",
+    "function_name": "petal_init",
+    "parameters": ["D", "d", "C", "L", "minimize_K"]
+  },
+  {
+    "name": "Matching VRP",
+    "value": "matching_vrp",
+    "import_path": "verypy.classic_heuristics.matchingvrp",
+    "function_name": "mbsa_init",
+    "parameters": ["D", "d", "C", "L", "minimize_K"]
+  },
+  {
+    "name": "CMT Two-Phase",
+    "value": "cmt_two_phase",
+    "import_path": "verypy.classic_heuristics.cmt_2phase",
+    "function_name": "cmt_2phase_init",
+    "parameters": ["D", "d", "C", "L", "minimize_K"]
+  },
+  {
+    "name": "Sequential Nearest Neighbor",
+    "value": "sequential_nearest_neighbor",
+    "import_path": "verypy.classic_heuristics.nearest_neighbor",
+    "function_name": "sequential_nearest_neighbor_init",
+    "parameters": ["D", "d", "C", "L"]
+  }
+]

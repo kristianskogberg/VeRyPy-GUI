@@ -25,24 +25,17 @@
                         <input type="number" id="capacity" placeholder="Enter vehicle capacity">
                     </div>
                     <div class="form-group">
-                        <label>Add Locations Manually</label>
-                        <div class="form-group">
-                            <input type="number" id="x-coord" placeholder="X Coordinate">
-                            <input type="number" id="y-coord" placeholder="Y Coordinate">
-                        </div>
-                        <button id="add-location">Add Location</button>
+                        <label for="distance-matrix">Distance Matrix</label>
+                        <textarea id="distance-matrix" rows="5" readonly></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="locations">Current Locations</label>
-                        <textarea id="locations" rows="5" readonly></textarea>
+                        <label for="customer-demands">Customer Demands</label>
+                        <textarea id="customer-demands" rows="5" readonly></textarea>
                     </div>
                     <div class="form-group">
                         <label for="algorithm">Select Algorithm</label>
                         <select id="algorithm">
                             <option value="">Choose an algorithm</option>
-                            <option value="nearest-neighbor">Nearest Neighbor</option>
-                            <option value="clarke-wright">Clarke-Wright Savings</option>
-                            <option value="simulated-annealing">Simulated Annealing</option>
                         </select>
                     </div>
                     <button id="solve">Solve VRP</button>
