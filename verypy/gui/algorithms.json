@@ -7,13 +7,6 @@
     "parameters": ["D", "d", "C", "L", "emerging_route_count"]
   },
   {
-    "name": "Simulated Annealing",
-    "value": "simulated_annealing",
-    "import_path": "verypy.classic_heuristics.simulated_annealing",
-    "function_name": "simulated_annealing_init",
-    "parameters": ["D", "d", "C", "L", "initial_temperature", "cooling_rate"]
-  },
-  {
     "name": "Parallel Savings",
     "value": "parallel_savings",
     "import_path": "verypy.classic_heuristics.parallel_savings",
@@ -39,21 +32,14 @@
     "value": "gillet_miller_sweep",
     "import_path": "verypy.classic_heuristics.gillet_miller_sweep",
     "function_name": "gillet_miller_init",
-    "parameters": ["D", "d", "C", "L", "minimize_K"]
+    "parameters": ["points", "D", "d", "C", "L", "minimize_K"]
   },
   {
     "name": "Wren-Holliday Sweep",
     "value": "wren_holliday_sweep",
     "import_path": "verypy.classic_heuristics.wren_holliday_sweep",
     "function_name": "wren_holliday_init",
-    "parameters": ["D", "d", "C", "L", "minimize_K"]
-  },
-  {
-    "name": "Tyagi Nearest Neighbor",
-    "value": "tyagi_nearest_neighbor",
-    "import_path": "verypy.classic_heuristics.tyagi_nearest_neighbor",
-    "function_name": "tyagi_init",
-    "parameters": ["D", "d", "C", "L"]
+    "parameters": ["points", "D", "d", "C", "L", "minimize_K"]
   },
   {
     "name": "Route-First Cluster-Second",
@@ -67,7 +53,7 @@
     "value": "petal_vrp",
     "import_path": "verypy.classic_heuristics.petalvrp",
     "function_name": "petal_init",
-    "parameters": ["D", "d", "C", "L", "minimize_K"]
+    "parameters": ["points", "D", "d", "C", "L", "minimize_K"]
   },
   {
     "name": "Matching VRP",
@@ -89,5 +75,50 @@
     "import_path": "verypy.classic_heuristics.nearest_neighbor",
     "function_name": "sequential_nearest_neighbor_init",
     "parameters": ["D", "d", "C", "L"]
+  },
+  {
+    "name": "Tyagi Nearest Neighbor",
+    "value": "tyagi_nearest_neighbor",
+    "import_path": "verypy.classic_heuristics.tyagi_nearest_neighbor",
+    "function_name": "tyagi_init",
+    "parameters": ["D", "d", "C", "L"]
+  },
+  {
+    "name": "GAP VRP",
+    "value": "gap_vrp",
+    "import_path": "verypy.classic_heuristics.gapvrp",
+    "function_name": "gap_init",
+    "parameters": [
+      "points",
+      "D",
+      "d",
+      "C",
+      "L",
+      "st",
+      "K",
+      "minimize_K",
+      "find_optimal_seeds",
+      "seed_method",
+      "seed_edge_weight_type",
+      "use_adaptive_L_constraint_weights",
+      "increase_K_on_failure"
+    ]
+  },
+  {
+    "name": "LR3OPT",
+    "value": "lr3opt",
+    "import_path": "verypy.classic_heuristics.lr3opt",
+    "function_name": "lr3opt_init",
+    "parameters": [
+      "D",
+      "d",
+      "C",
+      "L",
+      "initial_lambda1_C",
+      "initial_lambda1_L",
+      "initialization_algorithm",
+      "postoptimize_with_3optstar",
+      "max_concecutive_lamba_incs"
+    ]
   }
 ]

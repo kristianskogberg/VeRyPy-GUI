@@ -63,13 +63,13 @@ document.getElementById("vrp-file").addEventListener("change", function () {
 
     // Update the UI with the parsed data
     document.getElementById("capacity").value = capacity;
-    const distanceMatrixTextarea = document.getElementById("distance-matrix");
+    const coordinatesTextarea = document.getElementById("coordinates");
     const customerDemandsTextarea = document.getElementById("customer-demands");
 
     // Format the distance matrix and demands similar to the .vrp file
-    let formattedDistanceMatrix = "NODE_COORD_SECTION\n";
+    let formattedCoordinates = "NODE_COORD_SECTION\n";
     distanceMatrix.forEach((coords) => {
-      formattedDistanceMatrix += `${coords[0]} ${coords[1]} ${coords[2]}\n`;
+      formattedCoordinates += `${coords[0]} ${coords[1]} ${coords[2]}\n`;
     });
 
     let formattedCustomerDemands = "DEMAND_SECTION\n";
@@ -77,7 +77,7 @@ document.getElementById("vrp-file").addEventListener("change", function () {
       formattedCustomerDemands += `${demand[0]} ${demand[1]}\n`;
     });
 
-    distanceMatrixTextarea.value = formattedDistanceMatrix;
+    coordinatesTextarea.value = formattedCoordinates;
     customerDemandsTextarea.value = formattedCustomerDemands;
 
     console.log("Distance Matrix:", distanceMatrix);
@@ -91,7 +91,7 @@ document.getElementById("vrp-file").addEventListener("change", function () {
 document.getElementById("solve").addEventListener("click", function () {
   const algorithm = document.getElementById("algorithm").value;
   const capacity = parseInt(document.getElementById("capacity").value, 10);
-  const distanceMatrix = document.getElementById("distance-matrix").value;
+  const coordinates = document.getElementById("coordinates").value;
   const customerDemands = document.getElementById("customer-demands").value;
   const vrpFile = document.getElementById("vrp-file").files[0];
 
@@ -103,8 +103,8 @@ document.getElementById("solve").addEventListener("click", function () {
     alert("Please enter a valid number for vehicle capacity.");
     return;
   }
-  if (!distanceMatrix.trim() || !customerDemands.trim()) {
-    alert("Please add the distance matrix and customer demands.");
+  if (!coordinates.trim() || !customerDemands.trim()) {
+    alert("Please add the coordinates and customer demands.");
     return;
   }
 
@@ -115,7 +115,7 @@ document.getElementById("solve").addEventListener("click", function () {
     const data = {
       algorithm: algorithm,
       capacity: capacity,
-      distance_matrix: distanceMatrix
+      distance_matrix: coordinates
         .split("\n")
         .map((row) => row.split(" ").map(Number)),
       customer_demands: customerDemands.split("\n").map(Number),
@@ -145,7 +145,7 @@ document.getElementById("solve").addEventListener("click", function () {
     const data = {
       algorithm: algorithm,
       capacity: capacity,
-      distance_matrix: distanceMatrix
+      distance_matrix: coordinates
         .split("\n")
         .map((row) => row.split(" ").map(Number)),
       customer_demands: customerDemands.split("\n").map(Number),
@@ -160,11 +160,6 @@ document.getElementById("solve").addEventListener("click", function () {
     })
       .then((response) => response.json())
       .then((data) => {
-        document.getElementById("result").innerText = JSON.stringify(
-          data.solution,
-          null,
-          2
-        );
         alert("Solution received. Check the result area.");
       })
       .catch((error) => {
@@ -177,7 +172,7 @@ document.getElementById("solve").addEventListener("click", function () {
 document.getElementById("reset").addEventListener("click", function () {
   document.getElementById("vrp-file").value = "";
   document.getElementById("capacity").value = "";
-  document.getElementById("distance-matrix").value = "";
+  document.getElementById("coordinates").value = "";
   document.getElementById("customer-demands").value = "";
   document.getElementById("algorithm").value = "";
 });

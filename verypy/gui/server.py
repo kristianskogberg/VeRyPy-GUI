@@ -7,8 +7,10 @@ import os
 import base64
 import verypy.cvrp_io as cvrp_io
 from verypy.util import sol2routes
+from verypy.cvrp_ops import normalize_solution, recalculate_objective
 from urllib.parse import parse_qs
 import numpy as np
+from time import time
 
 PORT = 8000
 
@@ -50,6 +52,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     distance_matrix = problem.distance_matrix
                     customer_demands = problem.customer_demands
                     capacity_constraint = problem.capacity_constraint
+                    points = problem.coordinate_points
 
                     algorithm = params.get('algorithm', 'No algorithm selected')
 
@@ -70,30 +73,60 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                         import_path = selected_algorithm['import_path']
                         function_name = selected_algorithm['function_name']
+                        parameters = selected_algorithm['parameters']
 
                         # Dynamically import and run the selected algorithm
                         algorithm_module = __import__(import_path, fromlist=[function_name])
                         algorithm_function = getattr(algorithm_module, function_name)
 
                         # Prepare parameters for the algorithm
-                        D = distance_matrix
-                        d = customer_demands
-                        C = capacity_constraint
-                        L = None  # Optional route length constraint
+                        param_values = {
+                            'points': points,
+                            'D': distance_matrix,
+                            'd': customer_demands,
+                            'C': capacity_constraint,
+                            'L': None  # Optional route length constraint
+                        }
 
-                        # Call the algorithm function
-                        solution = algorithm_function(D=D, d=d, C=C, L=L)
+                        # Extract additional parameters from the request if needed
+                        for param in parameters:
+                            if param not in param_values and param in params:
+                                param_values[param] = params[param]
+
+                        # Filter the parameters to match the function signature
+                        func_params = {param: param_values[param] for param in parameters if param in param_values}
+
+                        # Measure the elapsed time for solving the VRP
+                        start_time = time()
+                        solution = algorithm_function(**func_params)
+                        elapsed_time = time() - start_time
+
+                        # Normalize and calculate the objective of the solution
+                        solution = normalize_solution(solution)
+                        objective = recalculate_objective(solution, distance_matrix)
+                        K = solution.count(0) - 1
 
                         # Convert solution to routes
                         routes = sol2routes(solution)
                         formatted_solution = "\n".join([f"Route #{route_idx + 1} : {route}" for route_idx, route in enumerate(routes)])
 
                         logging.info(f"Solution: {formatted_solution}")
+                        logging.info(f"Objective: {objective}")
+                        logging.info(f"Number of routes (K): {K}")
+                        logging.info(f"Elapsed time: {elapsed_time:.2f} seconds")
+
+                        # Ensure all data is JSON serializable
+                        response_data = {
+                            'solution': formatted_solution,
+                            'objective': int(objective),
+                            'num_routes': int(K),
+                            'elapsed_time': elapsed_time
+                        }
 
                         self.send_response(200)
                         self.send_header('Content-type', 'application/json')
                         self.end_headers()
-                        self.wfile.write(json.dumps({'solution': formatted_solution}).encode('utf-8'))
+                        self.wfile.write(json.dumps(response_data).encode('utf-8'))
                     except ImportError as e:
                         logging.error(f"Error importing algorithm module: {e}")
                         self.send_response(500)
