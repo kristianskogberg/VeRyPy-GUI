@@ -7,7 +7,7 @@ import os
 import base64
 import verypy.cvrp_io as cvrp_io
 from verypy.util import sol2routes
-from verypy.cvrp_ops import normalize_solution, recalculate_objective
+from verypy.cvrp_ops import normalize_solution, recalculate_objective, validate_solution_feasibility
 from urllib.parse import parse_qs
 import numpy as np
 from time import time
@@ -106,6 +106,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         objective = recalculate_objective(solution, distance_matrix)
                         K = solution.count(0) - 1
 
+                        # Validate the solution feasibility
+                        feasibility = validate_solution_feasibility(solution, distance_matrix, customer_demands, capacity_constraint, None, False)
+
                         # Convert solution to routes
                         routes = sol2routes(solution)
                         formatted_solution = "\n".join([f"Route #{route_idx + 1} : {route}" for route_idx, route in enumerate(routes)])
@@ -114,13 +117,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         logging.info(f"Objective: {objective}")
                         logging.info(f"Number of routes (K): {K}")
                         logging.info(f"Elapsed time: {elapsed_time:.2f} seconds")
+                        logging.info(f"Feasibility: {feasibility}")
 
                         # Ensure all data is JSON serializable
                         response_data = {
                             'solution': formatted_solution,
                             'objective': int(objective),
                             'num_routes': int(K),
-                            'elapsed_time': elapsed_time
+                            'elapsed_time': elapsed_time,
+                            'feasibility': feasibility
                         }
 
                         self.send_response(200)

@@ -169,3 +169,8 @@ input[type="range"] {
   width: 100%;
   margin-top: 0.5rem;
 }
+
+/* Add this CSS to your stylesheet */
+.no-hover * {
+  pointer-events: none;
+}

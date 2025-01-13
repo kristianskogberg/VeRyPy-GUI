@@ -103,10 +103,35 @@ document.getElementById("solve").addEventListener("click", function () {
     alert("Please enter a valid number for vehicle capacity.");
     return;
   }
-  if (!coordinates.trim() || !customerDemands.trim()) {
-    alert("Please add the coordinates and customer demands.");
+  if (!coordinates.trim()) {
+    alert("Please add the coordinates.");
     return;
   }
+  if (!customerDemands.trim()) {
+    alert("Please add the customer demands.");
+    return;
+  }
+
+  // Check if the number of rows in coordinates and customer demands match
+  const coordinatesRows = coordinates.trim().split("\n").length;
+  const customerDemandsRows = customerDemands.trim().split("\n").length;
+  if (coordinatesRows !== customerDemandsRows) {
+    alert("The number of rows in coordinates and customer demands must match.");
+    return;
+  }
+
+  // Disable all buttons and input fields
+  const elementsToDisable = document.querySelectorAll(
+    "button, input, select, textarea"
+  );
+  elementsToDisable.forEach((element) => (element.disabled = true));
+
+  // Change the text of the solve button to "solving..."
+  const solveButton = document.getElementById("solve");
+  solveButton.textContent = "Solving...";
+
+  // Disable hover effects
+  document.body.classList.add("no-hover");
 
   const reader = new FileReader();
   reader.onload = function (event) {
@@ -136,6 +161,14 @@ document.getElementById("solve").addEventListener("click", function () {
       .catch((error) => {
         console.error("Error:", error);
         alert("An error occurred: " + error.message);
+      })
+      .finally(() => {
+        // Enable all buttons and input fields
+        elementsToDisable.forEach((element) => (element.disabled = false));
+        // Restore the text of the solve button
+        solveButton.textContent = "Solve";
+        // Enable hover effects
+        document.body.classList.remove("no-hover");
       });
   };
 
@@ -165,6 +198,14 @@ document.getElementById("solve").addEventListener("click", function () {
       .catch((error) => {
         console.error("Error:", error);
         alert("An error occurred: " + error.message);
+      })
+      .finally(() => {
+        // Enable all buttons and input fields
+        elementsToDisable.forEach((element) => (element.disabled = false));
+        // Restore the text of the solve button
+        solveButton.textContent = "Solve";
+        // Enable hover effects
+        document.body.classList.remove("no-hover");
       });
   }
 });

@@ -70,13 +70,6 @@
     "parameters": ["D", "d", "C", "L", "minimize_K"]
   },
   {
-    "name": "Sequential Nearest Neighbor",
-    "value": "sequential_nearest_neighbor",
-    "import_path": "verypy.classic_heuristics.nearest_neighbor",
-    "function_name": "sequential_nearest_neighbor_init",
-    "parameters": ["D", "d", "C", "L"]
-  },
-  {
     "name": "Tyagi Nearest Neighbor",
     "value": "tyagi_nearest_neighbor",
     "import_path": "verypy.classic_heuristics.tyagi_nearest_neighbor",
