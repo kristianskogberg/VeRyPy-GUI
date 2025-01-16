@@ -8,6 +8,7 @@ import base64
 import verypy.cvrp_io as cvrp_io
 from verypy.util import sol2routes
 from verypy.cvrp_ops import normalize_solution, recalculate_objective, validate_solution_feasibility
+from verypy import get_algorithms
 from urllib.parse import parse_qs
 import numpy as np
 from time import time
@@ -25,12 +26,30 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     with the provided parameters.
     """
     def do_GET(self):
-        # Serve the index.html file for the root path
         if self.path == '/':
             self.path = 'index.html'
-        # Log the request path
+        elif self.path == '/algorithms':
+            self.handle_algorithms()
+            return
         logging.info(f"GET request for {self.path}")
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
+
+    def handle_algorithms(self):
+        try:
+            # Get algorithms using get_algorithms function
+            algos = get_algorithms('all')
+            algorithms = [{'name': algo[1], 'value': algo[0], 'description': algo[2]} for algo in algos]
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(algorithms).encode('utf-8'))
+        except Exception as e:
+            logging.error(f"Error getting algorithms: {e}")
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
 
     def do_POST(self):
         if self.path == '/run':
@@ -52,7 +71,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     distance_matrix = problem.distance_matrix
                     customer_demands = problem.customer_demands
                     capacity_constraint = problem.capacity_constraint
-                    points = problem.coordinate_points
+                    points = problem.coordinate_points # DO NOT MODIFY THIS VARIABLE
 
                     algorithm = params.get('algorithm', 'No algorithm selected')
 
@@ -62,22 +81,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     logging.info(f"Capacity Constraint: {capacity_constraint}")
 
                     try:
-                        # Load algorithms.json to get the import path and function name
-                        with open('algorithms.json', 'r') as f:
-                            algorithms = json.load(f)
+                        # Get algorithms using get_algorithms function
+                        algos = get_algorithms('all')
 
                         # Find the selected algorithm
-                        selected_algorithm = next((algo for algo in algorithms if algo['value'] == algorithm), None)
+                        selected_algorithm = next((algo for algo in algos if algo[0] == algorithm), None)
                         if not selected_algorithm:
-                            raise ValueError(f"Algorithm {algorithm} not found in algorithms.json")
+                            raise ValueError(f"Algorithm {algorithm} not found")
 
-                        import_path = selected_algorithm['import_path']
-                        function_name = selected_algorithm['function_name']
-                        parameters = selected_algorithm['parameters']
-
-                        # Dynamically import and run the selected algorithm
-                        algorithm_module = __import__(import_path, fromlist=[function_name])
-                        algorithm_function = getattr(algorithm_module, function_name)
+                        _, algo_name, _, algorithm_function = selected_algorithm
 
                         # Prepare parameters for the algorithm
                         param_values = {
@@ -85,20 +97,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'D': distance_matrix,
                             'd': customer_demands,
                             'C': capacity_constraint,
-                            'L': None  # Optional route length constraint
+                            'L': None,  # Optional route length constraint
+                            'st': None,
+                            'wtt': None,
+                            'single': False,
+                            'minimize_K': False
                         }
-
-                        # Extract additional parameters from the request if needed
-                        for param in parameters:
-                            if param not in param_values and param in params:
-                                param_values[param] = params[param]
-
-                        # Filter the parameters to match the function signature
-                        func_params = {param: param_values[param] for param in parameters if param in param_values}
 
                         # Measure the elapsed time for solving the VRP
                         start_time = time()
-                        solution = algorithm_function(**func_params)
+                        try:
+                            solution = algorithm_function(**param_values)
+                        except TypeError:
+                            solution = algorithm_function(points, distance_matrix, customer_demands, capacity_constraint, None, None, "GEO", False, False)
                         elapsed_time = time() - start_time
 
                         # Normalize and calculate the objective of the solution

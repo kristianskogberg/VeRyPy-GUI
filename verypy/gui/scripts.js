@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-  fetch("algorithms.json")
+  fetch("/algorithms")
     .then((response) => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
       algorithms.forEach((algorithm) => {
         const option = document.createElement("option");
         option.value = algorithm.value;
-        option.textContent = algorithm.name;
+        option.textContent = algorithm.description;
         algorithmSelect.appendChild(option);
       });
     })
