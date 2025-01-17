@@ -58,47 +58,35 @@
             <div class="column">
                 <div class="card">
                     <div class="card-header">
-                        <h2>Statistics</h2>
+                        <h2>Solution Metrics</h2>
                     </div>
                     <div class="card-content">
                         <div class="statistics-grid">
                             <div>
                                 <h3>Total Distance</h3>
-                                <p>1234.5 km</p>
+                                <p id="total-distance">-</p>
                             </div>
                             <div>
-                                <h3>Total Time</h3>
-                                <p>45.6 hours</p>
-                            </div>
-                            <div>
-                                <h3>Vehicle Utilization</h3>
-                                <p>87.5%</p>
+                                <h3>Number of Routes</h3>
+                                <p id="num-routes">-</p>
                             </div>
                             <div>
                                 <h3>Computation Time</h3>
-                                <p>2.3 seconds</p>
+                                <p id="computation-time">-</p>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Visualization</h2>
-                    </div>
-                    <div class="card-content">
-                        <div class="visualization">
                             <div>
-                                <div>📍</div>
-                                <div>🚚</div>
-                                <div>Visualization Area</div>
+                                <h3>Covering Feasibility</h3>
+                                <p id="covering-feasibility">-</p>
+                            </div>
+                            <div>
+                                <h3>Capacity Feasibility</h3>
+                                <p id="capacity-feasibility">-</p>
+                            </div>
+                            <div>
+                                <h3>Route Cost Feasibility</h3>
+                                <p id="route-cost-feasibility">-</p>
                             </div>
                         </div>
-                        <div class="playback-controls">
-                            <button id="playback">Play</button>
-                            <span>Stage: <span id="current-stage">0</span> / 10</span>
-                        </div>
-                        <input type="range" id="stage-slider" min="0" max="10" value="0">
                     </div>
                 </div>
             </div>

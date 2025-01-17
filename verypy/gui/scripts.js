@@ -35,38 +35,33 @@ document.getElementById("vrp-file").addEventListener("change", function () {
     const customerDemands = [];
 
     lines.forEach((line) => {
-      line = line.trim();
       if (line.startsWith("CAPACITY")) {
         capacity = parseInt(line.split(":")[1].trim(), 10);
       } else if (line.startsWith("NODE_COORD_SECTION")) {
         readingNodes = true;
-        readingDemands = false;
       } else if (line.startsWith("DEMAND_SECTION")) {
         readingNodes = false;
         readingDemands = true;
-      } else if (line.startsWith("DEPOT_SECTION") || line.startsWith("EOF")) {
-        readingNodes = false;
+      } else if (line.startsWith("DEPOT_SECTION")) {
         readingDemands = false;
       } else if (readingNodes) {
-        const parts = line.split(/\s+/);
+        const parts = line.trim().split(/\s+/);
         const index = parseInt(parts[0], 10);
         const x = parseFloat(parts[1]);
         const y = parseFloat(parts[2]);
         distanceMatrix.push([index, x, y]);
       } else if (readingDemands) {
-        const parts = line.split(/\s+/);
+        const parts = line.trim().split(/\s+/);
         const index = parseInt(parts[0], 10);
         const demand = parseInt(parts[1], 10);
         customerDemands.push([index, demand]);
       }
     });
 
-    // Update the UI with the parsed data
     document.getElementById("capacity").value = capacity;
     const coordinatesTextarea = document.getElementById("coordinates");
     const customerDemandsTextarea = document.getElementById("customer-demands");
 
-    // Format the distance matrix and demands similar to the .vrp file
     let formattedCoordinates = "NODE_COORD_SECTION\n";
     distanceMatrix.forEach((coords) => {
       formattedCoordinates += `${coords[0]} ${coords[1]} ${coords[2]}\n`;
@@ -79,10 +74,6 @@ document.getElementById("vrp-file").addEventListener("change", function () {
 
     coordinatesTextarea.value = formattedCoordinates;
     customerDemandsTextarea.value = formattedCustomerDemands;
-
-    console.log("Distance Matrix:", distanceMatrix);
-    console.log("Customer Demands:", customerDemands);
-    console.log("Capacity Constraint:", capacity);
   };
 
   reader.readAsText(file);
@@ -115,34 +106,31 @@ document.getElementById("solve").addEventListener("click", function () {
     return;
   }
 
-  // Check if the number of rows in coordinates and customer demands match
-  const coordinatesRows = coordinates.trim().split("\n").length;
-  const customerDemandsRows = customerDemands.trim().split("\n").length;
-  if (coordinatesRows !== customerDemandsRows) {
-    alert("The number of rows in coordinates and customer demands must match.");
-    return;
-  }
+  // Clear solution metrics
+  document.getElementById("total-distance").textContent = "...";
+  document.getElementById("num-routes").textContent = "...";
+  document.getElementById("computation-time").textContent = "...";
+  document.getElementById("covering-feasibility").textContent = "...";
+  document.getElementById("capacity-feasibility").textContent = "...";
+  document.getElementById("route-cost-feasibility").textContent = "...";
 
-  // Disable all buttons and input fields
   const elementsToDisable = document.querySelectorAll(
     "button, input, select, textarea"
   );
   elementsToDisable.forEach((element) => (element.disabled = true));
 
-  // Change the text of the solve button to "solving..."
   const solveButton = document.getElementById("solve");
   solveButton.textContent = "Solving...";
 
-  // Disable hover effects
   document.body.classList.add("no-hover");
 
   const reader = new FileReader();
   reader.onload = function (event) {
-    const vrpFileContent = event.target.result.split(",")[1]; // Get base64 content
+    const vrpFileContent = event.target.result.split(",")[1];
 
     const data = {
       algorithm: algorithm,
-      C: capacity,
+      capacity: capacity,
       distance_matrix: coordinates
         .split("\n")
         .map((row) => row.split(" ").map(Number)),
@@ -162,18 +150,31 @@ document.getElementById("solve").addEventListener("click", function () {
     })
       .then((response) => response.json())
       .then((data) => {
-        alert("Solution received. Check the result area.");
+        document.getElementById("total-distance").textContent = data.objective;
+        document.getElementById("num-routes").textContent = data.num_routes;
+        document.getElementById(
+          "computation-time"
+        ).textContent = `${data.elapsed_time.toFixed(4)} seconds`;
+        document.getElementById("covering-feasibility").textContent = data
+          .feasibility[0]
+          ? "Feasible"
+          : "Infeasible";
+        document.getElementById("capacity-feasibility").textContent = data
+          .feasibility[1]
+          ? "Feasible"
+          : "Infeasible";
+        document.getElementById("route-cost-feasibility").textContent = data
+          .feasibility[2]
+          ? "Feasible"
+          : "Infeasible";
       })
       .catch((error) => {
         console.error("Error:", error);
         alert("An error occurred: " + error.message);
       })
       .finally(() => {
-        // Enable all buttons and input fields
         elementsToDisable.forEach((element) => (element.disabled = false));
-        // Restore the text of the solve button
         solveButton.textContent = "Solve";
-        // Enable hover effects
         document.body.classList.remove("no-hover");
       });
   };
@@ -202,6 +203,23 @@ document.getElementById("solve").addEventListener("click", function () {
     })
       .then((response) => response.json())
       .then((data) => {
+        document.getElementById("total-distance").textContent = data.objective;
+        document.getElementById("num-routes").textContent = data.num_routes;
+        document.getElementById(
+          "computation-time"
+        ).textContent = `${data.elapsed_time.toFixed(2)} seconds`;
+        document.getElementById("covering-feasibility").textContent = data
+          .feasibility[0]
+          ? "Feasible"
+          : "Infeasible";
+        document.getElementById("capacity-feasibility").textContent = data
+          .feasibility[1]
+          ? "Feasible"
+          : "Infeasible";
+        document.getElementById("route-cost-feasibility").textContent = data
+          .feasibility[2]
+          ? "Feasible"
+          : "Infeasible";
         alert("Solution received. Check the result area.");
       })
       .catch((error) => {
@@ -209,11 +227,8 @@ document.getElementById("solve").addEventListener("click", function () {
         alert("An error occurred: " + error.message);
       })
       .finally(() => {
-        // Enable all buttons and input fields
         elementsToDisable.forEach((element) => (element.disabled = false));
-        // Restore the text of the solve button
         solveButton.textContent = "Solve";
-        // Enable hover effects
         document.body.classList.remove("no-hover");
       });
   }

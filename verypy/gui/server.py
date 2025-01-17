@@ -70,65 +70,43 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                     distance_matrix = problem.distance_matrix
                     customer_demands = problem.customer_demands
-                   # capacity_constraint = problem.capacity_constraint
-                    points = problem.coordinate_points # DO NOT MODIFY THIS VARIABLE
+                    points = problem.coordinate_points
 
                     algorithm = params.get('algorithm', 'No algorithm selected')
 
                     try:
-                        # Get algorithms using get_algorithms function
                         algos = get_algorithms('all')
-
-                        # Find the selected algorithm
                         selected_algorithm = next((algo for algo in algos if algo[0] == algorithm), None)
                         if not selected_algorithm:
                             raise ValueError(f"Algorithm {algorithm} not found")
 
                         _, algo_name, _, algorithm_function = selected_algorithm
 
-                        # Prepare parameters for the algorithm
                         param_values = {
                             'points': points,
                             'D': distance_matrix,
                             'd': customer_demands,
-                            'C': params.get('C', None),
-                            'L': params.get('L', None),  # Optional route length constraint
+                            'C': params.get('capacity', None),
+                            'L': params.get('L', None),
                             'st': None,
                             'wtt': None,
                             'single': params.get('single', False),
                             'minimize_K': params.get('minimize_K', False)
                         }
 
-                        # Log all parameters
                         logging.info(f"Parameters for algorithm {algorithm}: {param_values}")
 
-                        # Measure the elapsed time for solving the VRP
                         start_time = time()
-                        try:
-                            solution = algorithm_function(**param_values)
-                        except TypeError:
-                            solution = algorithm_function(points, distance_matrix, customer_demands, params.get('C', None), None, None, "GEO", False, False)
+                        solution = algorithm_function(**param_values)
                         elapsed_time = time() - start_time
 
-                        # Normalize and calculate the objective of the solution
                         solution = normalize_solution(solution)
                         objective = recalculate_objective(solution, distance_matrix)
                         K = solution.count(0) - 1
-
-                        # Validate the solution feasibility
                         feasibility = validate_solution_feasibility(solution, distance_matrix, customer_demands, params.get('C', None), None, False)
-
-                        # Convert solution to routes
                         routes = sol2routes(solution)
                         formatted_solution = "\n".join([f"Route #{route_idx + 1} : {route}" for route_idx, route in enumerate(routes)])
 
-                        logging.info(f"Solution: {formatted_solution}")
-                        logging.info(f"Objective: {objective}")
-                        logging.info(f"Number of routes (K): {K}")
-                        logging.info(f"Elapsed time: {elapsed_time:.2f} seconds")
-                        logging.info(f"Feasibility: {feasibility}")
-
-                        # Ensure all data is JSON serializable
                         response_data = {
                             'solution': formatted_solution,
                             'objective': int(objective),
@@ -136,6 +114,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'elapsed_time': elapsed_time,
                             'feasibility': feasibility
                         }
+
+                        logging.info(f"Response data: {json.dumps(response_data, indent=2)}")
 
                         self.send_response(200)
                         self.send_header('Content-type', 'application/json')
@@ -163,19 +143,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     raise ValueError("No vrp_file parameter found in the request")
 
             except (KeyError, ValueError) as e:
-                logging.error(f"Invalid or missing Content-Length header: {e}")
-                self.send_response(400)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(b'Bad Request: Invalid or missing Content-Length header')
-            except json.JSONDecodeError:
-                logging.error("Invalid JSON received")
-                self.send_response(400)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(b'Invalid JSON')
-            except Exception as e:
                 logging.error(f"Error handling /run request: {e}")
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+            except Exception as e:
+                logging.error(f"Unexpected error: {e}")
                 self.send_response(500)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
