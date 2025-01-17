@@ -70,15 +70,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                     distance_matrix = problem.distance_matrix
                     customer_demands = problem.customer_demands
-                    capacity_constraint = problem.capacity_constraint
+                   # capacity_constraint = problem.capacity_constraint
                     points = problem.coordinate_points # DO NOT MODIFY THIS VARIABLE
 
                     algorithm = params.get('algorithm', 'No algorithm selected')
-
-                    logging.info(f"Selected algorithm: {algorithm}")
-                    logging.info(f"Distance Matrix: {distance_matrix}")
-                    logging.info(f"Customer Demands: {customer_demands}")
-                    logging.info(f"Capacity Constraint: {capacity_constraint}")
 
                     try:
                         # Get algorithms using get_algorithms function
@@ -96,20 +91,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'points': points,
                             'D': distance_matrix,
                             'd': customer_demands,
-                            'C': capacity_constraint,
-                            'L': None,  # Optional route length constraint
+                            'C': params.get('C', None),
+                            'L': params.get('L', None),  # Optional route length constraint
                             'st': None,
                             'wtt': None,
-                            'single': False,
-                            'minimize_K': False
+                            'single': params.get('single', False),
+                            'minimize_K': params.get('minimize_K', False)
                         }
+
+                        # Log all parameters
+                        logging.info(f"Parameters for algorithm {algorithm}: {param_values}")
 
                         # Measure the elapsed time for solving the VRP
                         start_time = time()
                         try:
                             solution = algorithm_function(**param_values)
                         except TypeError:
-                            solution = algorithm_function(points, distance_matrix, customer_demands, capacity_constraint, None, None, "GEO", False, False)
+                            solution = algorithm_function(points, distance_matrix, customer_demands, params.get('C', None), None, None, "GEO", False, False)
                         elapsed_time = time() - start_time
 
                         # Normalize and calculate the objective of the solution
@@ -118,7 +116,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         K = solution.count(0) - 1
 
                         # Validate the solution feasibility
-                        feasibility = validate_solution_feasibility(solution, distance_matrix, customer_demands, capacity_constraint, None, False)
+                        feasibility = validate_solution_feasibility(solution, distance_matrix, customer_demands, params.get('C', None), None, False)
 
                         # Convert solution to routes
                         routes = sol2routes(solution)

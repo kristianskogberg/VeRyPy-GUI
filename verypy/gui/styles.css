@@ -5,6 +5,14 @@
   box-sizing: border-box;
 }
 
+h1 {
+  margin-bottom: 1rem;
+}
+
+h2 {
+  margin-bottom: 0;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -17,11 +25,6 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 1rem;
-}
-
-h1,
-h2 {
-  margin-bottom: 1rem;
 }
 
 /* Grid layout */
@@ -39,14 +42,14 @@ h2 {
 /* Card styles */
 .card {
   background-color: #fff;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
 .card-header {
   padding: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #ccc;
 }
 
 .card-content {
@@ -152,8 +155,8 @@ input:checked + .slider:before {
 /* Statistics grid */
 .statistics-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  grid-template-columns: 1fr 1fr;
 }
 
 /* Playback controls */
@@ -173,4 +176,10 @@ input[type="range"] {
 /* Add this CSS to your stylesheet */
 .no-hover * {
   pointer-events: none;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }

@@ -21,16 +21,28 @@
                         <input type="file" id="vrp-file" accept=".vrp">
                     </div>
                     <div class="form-group">
-                        <label for="capacity">Vehicle Capacity</label>
-                        <input type="number" id="capacity" placeholder="Enter vehicle capacity">
-                    </div>
-                    <div class="form-group">
                         <label for="coordinates">Coordinates</label>
                         <textarea id="coordinates" rows="5" placeholder="Enter coordinates (one per line, format: index x y)"></textarea>
                     </div>
                     <div class="form-group">
                         <label for="customer-demands">Customer Demands</label>
                         <textarea id="customer-demands" rows="5" placeholder="Enter customer demands (one per line, format: index demand)"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="capacity">Vehicle Capacity (C)</label>
+                        <input type="number" id="capacity" placeholder="Enter vehicle capacity constraint (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="L">Maximum route length/duration/cost (L)</label>
+                        <input type="number" id="L" placeholder="Enter route length/duration/cost constraint (optional)">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                        <label for="single" style="margin-bottom: 0;">Single Iteration</label>
+                        <input type="checkbox" id="single" checked>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                        <label for="minimize_K" style="margin-bottom: 0;">Minimize Number of Routes (K)</label>
+                        <input type="checkbox" id="minimize_K">
                     </div>
                     <div class="form-group">
                         <label for="algorithm">Select Algorithm</label>
@@ -43,7 +55,7 @@
                 </div>
             </div>
 
-            <div>
+            <div class="column">
                 <div class="card">
                     <div class="card-header">
                         <h2>Statistics</h2>

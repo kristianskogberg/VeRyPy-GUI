@@ -90,9 +90,12 @@ document.getElementById("vrp-file").addEventListener("change", function () {
 
 document.getElementById("solve").addEventListener("click", function () {
   const algorithm = document.getElementById("algorithm").value;
-  const capacity = parseInt(document.getElementById("capacity").value, 10);
+  const capacity = parseInt(document.getElementById("capacity").value, null);
   const coordinates = document.getElementById("coordinates").value;
   const customerDemands = document.getElementById("customer-demands").value;
+  const L = document.getElementById("L").value;
+  const single = document.getElementById("single").checked;
+  const minimize_K = document.getElementById("minimize_K").checked;
   const vrpFile = document.getElementById("vrp-file").files[0];
 
   if (!algorithm) {
@@ -139,11 +142,14 @@ document.getElementById("solve").addEventListener("click", function () {
 
     const data = {
       algorithm: algorithm,
-      capacity: capacity,
+      C: capacity,
       distance_matrix: coordinates
         .split("\n")
         .map((row) => row.split(" ").map(Number)),
       customer_demands: customerDemands.split("\n").map(Number),
+      L: L ? parseInt(L, 10) : null,
+      single: single,
+      minimize_K: minimize_K,
       vrp_file: vrpFileContent,
     };
 
@@ -182,6 +188,9 @@ document.getElementById("solve").addEventListener("click", function () {
         .split("\n")
         .map((row) => row.split(" ").map(Number)),
       customer_demands: customerDemands.split("\n").map(Number),
+      L: L ? parseInt(L, 10) : null,
+      single: single,
+      minimize_K: minimize_K,
     };
 
     fetch("/run", {
@@ -215,5 +224,8 @@ document.getElementById("reset").addEventListener("click", function () {
   document.getElementById("capacity").value = "";
   document.getElementById("coordinates").value = "";
   document.getElementById("customer-demands").value = "";
+  document.getElementById("L").value = "";
+  document.getElementById("single").checked = false;
+  document.getElementById("minimize_K").checked = false;
   document.getElementById("algorithm").value = "";
 });
