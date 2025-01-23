@@ -59,6 +59,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h2>Solution Metrics</h2>
+                        <button id="export-metrics">Export Metrics</button>
                     </div>
                     <div class="card-content">
                         <div class="statistics-grid">
@@ -87,36 +88,28 @@
                                 <p id="route-cost-feasibility">-</p>
                             </div>
                         </div>
+                            <table id="route-costs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Route</th>
+                                        <th>Cost</th>
+                                        <th>Utilization Rate</th>
+                                        <th>Details</th>
+                                    </tr>
+                                 </thead>
+                                <tbody>
+                                    <!-- Route costs will be populated here -->
+                                </tbody>
+                            </table>
                     </div>
                 </div>
                 <div class="card">
                     <div class="card-header">
                         <h2>Solution Visualization</h2>
+                        <button id="export-visualization">Export Visualization</button>
                     </div>
                     <div class="card-content">
                         <canvas id="solution-canvas" width="800" height="600"></canvas>
-                        <button id="export-visualization">Export Visualization</button>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Route Metrics</h2>
-                    </div>
-                    <div class="card-content">
-                        <table id="route-costs-table">
-                            <thead>
-                                <tr>
-                                    <th>Route</th>
-                                    <th>Cost</th>
-                                    <th>Utilization Rate</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Route costs will be populated here -->
-                            </tbody>
-                        </table>
-                        <button id="export-metrics">Export Metrics</button>
                     </div>
                 </div>
             </div>

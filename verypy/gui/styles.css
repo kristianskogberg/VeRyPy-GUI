@@ -50,6 +50,10 @@ body {
 .card-header {
   padding: 1rem;
   border-bottom: 1px solid #ccc;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .card-content {
