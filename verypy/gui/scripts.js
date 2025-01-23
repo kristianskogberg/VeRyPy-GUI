@@ -173,9 +173,92 @@ function drawSolution(
     cell1.style.color = routeColor; // Set the color of the route name
     cell2.textContent = routeCost.toFixed(2);
     cell3.textContent = `${utilizationRate.toFixed(2)} %`;
-    cell4.textContent = route.join(" → ");
+    cell4.textContent = route.join(" -> ");
   });
 }
+
+function exportVisualization() {
+  const canvas = document.getElementById("solution-canvas");
+  const link = document.createElement("a");
+  link.download = "visualization.png";
+  link.href = canvas.toDataURL();
+  link.click();
+}
+
+function exportMetrics() {
+  // Collect solution metrics
+  const totalDistance = document.getElementById("total-distance").textContent;
+  const numRoutes = document.getElementById("num-routes").textContent;
+  const computationTime =
+    document.getElementById("computation-time").textContent;
+  const coveringFeasibility = document.getElementById(
+    "covering-feasibility"
+  ).textContent;
+  const capacityFeasibility = document.getElementById(
+    "capacity-feasibility"
+  ).textContent;
+  const routeCostFeasibility = document.getElementById(
+    "route-cost-feasibility"
+  ).textContent;
+
+  const solutionMetrics = {
+    totalDistance,
+    numRoutes,
+    computationTime,
+    coveringFeasibility,
+    capacityFeasibility,
+    routeCostFeasibility,
+  };
+
+  // Collect route metrics
+  const rows = document.querySelectorAll("#route-costs-table tbody tr");
+  const routeMetrics = Array.from(rows).map((row) => {
+    const cols = row.querySelectorAll("td");
+    return {
+      route: cols[0].textContent,
+      cost: cols[1].textContent,
+      utilizationRate: cols[2].textContent,
+      details: cols[3].textContent,
+    };
+  });
+
+  // Get selected algorithm text and value
+  const algorithmSelect = document.getElementById("algorithm");
+  const algorithmText =
+    algorithmSelect.options[algorithmSelect.selectedIndex].textContent;
+  const algorithmValue = algorithmSelect.value;
+
+  // Combine solution metrics, route metrics, and algorithm into a JSON structure
+  const metrics = {
+    algorithm: algorithmText,
+    solutionMetrics,
+    routeMetrics,
+  };
+
+  // Create JSON file and trigger download
+  const jsonContent = JSON.stringify(metrics, null, 2);
+  const blob = new Blob([jsonContent], { type: "application/json" });
+  const link = document.createElement("a");
+  const timestamp = new Date()
+    .toLocaleString("en-US", { hour12: false })
+    .replace(/[:/]/g, "-")
+    .replace(/, /g, "_");
+  const filename = `verypy_vrp_${algorithmValue}_metrics_${timestamp}.json`;
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+document
+  .getElementById("export-visualization")
+  .addEventListener("click", exportVisualization);
+document
+  .getElementById("export-metrics")
+  .addEventListener("click", exportMetrics);
 
 document.getElementById("solve").addEventListener("click", function () {
   const algorithm = document.getElementById("algorithm").value;
