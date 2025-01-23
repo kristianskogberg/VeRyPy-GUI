@@ -167,6 +167,11 @@ document.getElementById("solve").addEventListener("click", function () {
           .feasibility[2]
           ? "Feasible"
           : "Infeasible";
+
+        // Draw the solution visualization
+        const routes = data.routes; // Assuming routes are provided in the response
+        const points = data.points; // Assuming points are provided in the response
+        drawSolution(routes, points);
       })
       .catch((error) => {
         console.error("Error:", error);
@@ -177,6 +182,14 @@ document.getElementById("solve").addEventListener("click", function () {
         solveButton.textContent = "Solve";
         document.body.classList.remove("no-hover");
       });
+  };
+
+  reader.onerror = function (event) {
+    console.error("File could not be read! Code " + event.target.error.code);
+    alert("An error occurred while reading the file.");
+    elementsToDisable.forEach((element) => (element.disabled = false));
+    solveButton.textContent = "Solve";
+    document.body.classList.remove("no-hover");
   };
 
   if (vrpFile) {
@@ -207,7 +220,7 @@ document.getElementById("solve").addEventListener("click", function () {
         document.getElementById("num-routes").textContent = data.num_routes;
         document.getElementById(
           "computation-time"
-        ).textContent = `${data.elapsed_time.toFixed(2)} seconds`;
+        ).textContent = `${data.elapsed_time.toFixed(4)} seconds`;
         document.getElementById("covering-feasibility").textContent = data
           .feasibility[0]
           ? "Feasible"
@@ -220,7 +233,11 @@ document.getElementById("solve").addEventListener("click", function () {
           .feasibility[2]
           ? "Feasible"
           : "Infeasible";
-        alert("Solution received. Check the result area.");
+
+        // Draw the solution visualization
+        const routes = data.routes; // Assuming routes are provided in the response
+        const points = data.points; // Assuming points are provided in the response
+        drawSolution(routes, points);
       })
       .catch((error) => {
         console.error("Error:", error);
@@ -244,3 +261,51 @@ document.getElementById("reset").addEventListener("click", function () {
   document.getElementById("minimize_K").checked = false;
   document.getElementById("algorithm").value = "";
 });
+
+function drawSolution(routes, points) {
+  const canvas = document.getElementById("solution-canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Normalize coordinates to fit within the canvas
+  const margin = 20;
+  const minX = Math.min(...points.map((p) => p[0]));
+  const maxX = Math.max(...points.map((p) => p[0]));
+  const minY = Math.min(...points.map((p) => p[1]));
+  const maxY = Math.max(...points.map((p) => p[1]));
+  const scaleX = (canvas.width - 2 * margin) / (maxX - minX);
+  const scaleY = (canvas.height - 2 * margin) / (maxY - minY);
+
+  function normalizePoint(point) {
+    return [
+      margin + (point[0] - minX) * scaleX,
+      canvas.height - margin - (point[1] - minY) * scaleY,
+    ];
+  }
+
+  // Draw points
+  points.forEach((point, index) => {
+    const [x, y] = normalizePoint(point);
+    ctx.fillStyle = index === 0 ? "red" : "blue"; // Depot in red, customers in blue
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+
+  // Draw routes
+  routes.forEach((route, routeIndex) => {
+    ctx.strokeStyle = `hsl(${(routeIndex * 240) / routes.length}, 100%, 40%)`; // Different color for each route, avoiding light colors
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    route.forEach((pointIndex, i) => {
+      const [x, y] = normalizePoint(points[pointIndex]);
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.closePath();
+    ctx.stroke();
+  });
+}

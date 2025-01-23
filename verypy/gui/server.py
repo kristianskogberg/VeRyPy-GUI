@@ -94,8 +94,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'minimize_K': params.get('minimize_K', False)
                         }
 
-                        logging.info(f"Parameters for algorithm {algorithm}: {param_values}")
-
                         start_time = time()
                         solution = algorithm_function(**param_values)
                         elapsed_time = time() - start_time
@@ -103,19 +101,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         solution = normalize_solution(solution)
                         objective = recalculate_objective(solution, distance_matrix)
                         K = solution.count(0) - 1
-                        feasibility = validate_solution_feasibility(solution, distance_matrix, customer_demands, params.get('C', None), None, False)
+                        feasibility = validate_solution_feasibility(solution, distance_matrix, customer_demands, params.get('capacity', None), None, False)
                         routes = sol2routes(solution)
-                        formatted_solution = "\n".join([f"Route #{route_idx + 1} : {route}" for route_idx, route in enumerate(routes)])
+
+                        logging.info(f"Solution: {solution}")
+                        logging.info(f"Routes: {routes}")
 
                         response_data = {
-                            'solution': formatted_solution,
                             'objective': int(objective),
                             'num_routes': int(K),
                             'elapsed_time': elapsed_time,
-                            'feasibility': feasibility
+                            'feasibility': feasibility,
+                            'routes': routes,
+                            'points': points
                         }
-
-                        logging.info(f"Response data: {json.dumps(response_data, indent=2)}")
 
                         self.send_response(200)
                         self.send_header('Content-type', 'application/json')
