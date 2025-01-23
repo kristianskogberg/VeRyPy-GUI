@@ -79,11 +79,112 @@ document.getElementById("vrp-file").addEventListener("change", function () {
   reader.readAsText(file);
 });
 
+function calculateRouteCost(route, distanceMatrix) {
+  let cost = 0;
+  for (let i = 0; i < route.length - 1; i++) {
+    cost += distanceMatrix[route[i]][route[i + 1]];
+  }
+  return cost;
+}
+
+function calculateUtilizationRate(route, customerDemands, capacity) {
+  let totalDemand = 0;
+  for (let i = 1; i < route.length - 1; i++) {
+    // Skip the depot at the start and end
+    totalDemand += customerDemands[route[i]];
+  }
+  return (totalDemand / capacity) * 100; // Return as percentage
+}
+
+function drawSolution(
+  routes,
+  points,
+  distanceMatrix,
+  customerDemands,
+  capacity
+) {
+  const canvas = document.getElementById("solution-canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Normalize coordinates to fit within the canvas
+  const margin = 20;
+  const minX = Math.min(...points.map((p) => p[0]));
+  const maxX = Math.max(...points.map((p) => p[0]));
+  const minY = Math.min(...points.map((p) => p[1]));
+  const maxY = Math.max(...points.map((p) => p[1]));
+  const scaleX = (canvas.width - 2 * margin) / (maxX - minX);
+  const scaleY = (canvas.height - 2 * margin) / (maxY - minY);
+
+  function normalizePoint(point) {
+    return [
+      margin + (point[0] - minX) * scaleX,
+      canvas.height - margin - (point[1] - minY) * scaleY,
+    ];
+  }
+
+  // Draw points
+  points.forEach((point, index) => {
+    const [x, y] = normalizePoint(point);
+    ctx.fillStyle = index === 0 ? "red" : "blue"; // Depot in red, customers in blue
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+
+  // Clear the route costs table
+  const routeCostsTableBody = document
+    .getElementById("route-costs-table")
+    .getElementsByTagName("tbody")[0];
+  routeCostsTableBody.innerHTML = "";
+
+  // Draw routes and display route costs and utilization rates
+  routes.forEach((route, routeIndex) => {
+    const routeColor = `hsl(${(routeIndex * 240) / routes.length}, 100%, 40%)`; // Different color for each route, avoiding light colors
+    ctx.strokeStyle = routeColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    route.forEach((pointIndex, i) => {
+      const [x, y] = normalizePoint(points[pointIndex]);
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.closePath();
+    ctx.stroke();
+
+    // Calculate and display route cost and utilization rate
+    const routeCost = calculateRouteCost(route, distanceMatrix);
+    const utilizationRate = calculateUtilizationRate(
+      route,
+      customerDemands,
+      capacity
+    );
+
+    // Add route cost, utilization rate, and details to the table
+    const row = routeCostsTableBody.insertRow();
+    const cell1 = row.insertCell(0);
+    const cell2 = row.insertCell(1);
+    const cell3 = row.insertCell(2);
+    const cell4 = row.insertCell(3);
+    cell1.textContent = `Route #${routeIndex + 1}`;
+    cell1.style.color = routeColor; // Set the color of the route name
+    cell2.textContent = routeCost.toFixed(2);
+    cell3.textContent = `${utilizationRate.toFixed(2)} %`;
+    cell4.textContent = route.join(" → ");
+  });
+}
+
 document.getElementById("solve").addEventListener("click", function () {
   const algorithm = document.getElementById("algorithm").value;
   const capacity = parseInt(document.getElementById("capacity").value, null);
   const coordinates = document.getElementById("coordinates").value;
-  const customerDemands = document.getElementById("customer-demands").value;
+  const customerDemands = document
+    .getElementById("customer-demands")
+    .value.split("\n")
+    .map(Number);
   const L = document.getElementById("L").value;
   const single = document.getElementById("single").checked;
   const minimize_K = document.getElementById("minimize_K").checked;
@@ -101,18 +202,18 @@ document.getElementById("solve").addEventListener("click", function () {
     alert("Please add the coordinates.");
     return;
   }
-  if (!customerDemands.trim()) {
+  if (!customerDemands.length) {
     alert("Please add the customer demands.");
     return;
   }
 
   // Clear solution metrics
-  document.getElementById("total-distance").textContent = "...";
-  document.getElementById("num-routes").textContent = "...";
-  document.getElementById("computation-time").textContent = "...";
-  document.getElementById("covering-feasibility").textContent = "...";
-  document.getElementById("capacity-feasibility").textContent = "...";
-  document.getElementById("route-cost-feasibility").textContent = "...";
+  document.getElementById("total-distance").textContent = "";
+  document.getElementById("num-routes").textContent = "";
+  document.getElementById("computation-time").textContent = "";
+  document.getElementById("covering-feasibility").textContent = "";
+  document.getElementById("capacity-feasibility").textContent = "";
+  document.getElementById("route-cost-feasibility").textContent = "";
 
   const elementsToDisable = document.querySelectorAll(
     "button, input, select, textarea"
@@ -134,7 +235,7 @@ document.getElementById("solve").addEventListener("click", function () {
       distance_matrix: coordinates
         .split("\n")
         .map((row) => row.split(" ").map(Number)),
-      customer_demands: customerDemands.split("\n").map(Number),
+      customer_demands: customerDemands,
       L: L ? parseInt(L, 10) : null,
       single: single,
       minimize_K: minimize_K,
@@ -169,9 +270,14 @@ document.getElementById("solve").addEventListener("click", function () {
           : "Infeasible";
 
         // Draw the solution visualization
-        const routes = data.routes; // Assuming routes are provided in the response
-        const points = data.points; // Assuming points are provided in the response
-        drawSolution(routes, points);
+        const routes = data.routes;
+        const points = data.points;
+        const distanceMatrix = data.distance_matrix;
+        const customerDemands = data.customer_demands;
+        const capacity = data.capacity;
+        drawSolution(routes, points, distanceMatrix, customerDemands, capacity);
+
+        alert("Solution received. Check the result area.");
       })
       .catch((error) => {
         console.error("Error:", error);
@@ -201,7 +307,7 @@ document.getElementById("solve").addEventListener("click", function () {
       distance_matrix: coordinates
         .split("\n")
         .map((row) => row.split(" ").map(Number)),
-      customer_demands: customerDemands.split("\n").map(Number),
+      customer_demands: customerDemands,
       L: L ? parseInt(L, 10) : null,
       single: single,
       minimize_K: minimize_K,
@@ -235,9 +341,14 @@ document.getElementById("solve").addEventListener("click", function () {
           : "Infeasible";
 
         // Draw the solution visualization
-        const routes = data.routes; // Assuming routes are provided in the response
-        const points = data.points; // Assuming points are provided in the response
-        drawSolution(routes, points);
+        const routes = data.routes;
+        const points = data.points;
+        const distanceMatrix = data.distance_matrix;
+        const customerDemands = data.customer_demands;
+        const capacity = data.capacity;
+        drawSolution(routes, points, distanceMatrix, customerDemands, capacity);
+
+        alert("Solution received. Check the result area.");
       })
       .catch((error) => {
         console.error("Error:", error);
@@ -261,51 +372,3 @@ document.getElementById("reset").addEventListener("click", function () {
   document.getElementById("minimize_K").checked = false;
   document.getElementById("algorithm").value = "";
 });
-
-function drawSolution(routes, points) {
-  const canvas = document.getElementById("solution-canvas");
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Normalize coordinates to fit within the canvas
-  const margin = 20;
-  const minX = Math.min(...points.map((p) => p[0]));
-  const maxX = Math.max(...points.map((p) => p[0]));
-  const minY = Math.min(...points.map((p) => p[1]));
-  const maxY = Math.max(...points.map((p) => p[1]));
-  const scaleX = (canvas.width - 2 * margin) / (maxX - minX);
-  const scaleY = (canvas.height - 2 * margin) / (maxY - minY);
-
-  function normalizePoint(point) {
-    return [
-      margin + (point[0] - minX) * scaleX,
-      canvas.height - margin - (point[1] - minY) * scaleY,
-    ];
-  }
-
-  // Draw points
-  points.forEach((point, index) => {
-    const [x, y] = normalizePoint(point);
-    ctx.fillStyle = index === 0 ? "red" : "blue"; // Depot in red, customers in blue
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    ctx.fill();
-  });
-
-  // Draw routes
-  routes.forEach((route, routeIndex) => {
-    ctx.strokeStyle = `hsl(${(routeIndex * 240) / routes.length}, 100%, 40%)`; // Different color for each route, avoiding light colors
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    route.forEach((pointIndex, i) => {
-      const [x, y] = normalizePoint(points[pointIndex]);
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    });
-    ctx.closePath();
-    ctx.stroke();
-  });
-}

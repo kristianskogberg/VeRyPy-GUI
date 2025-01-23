@@ -107,14 +107,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         logging.info(f"Solution: {solution}")
                         logging.info(f"Routes: {routes}")
 
+                        # Convert distance_matrix to a list
+                        distance_matrix_list = distance_matrix.tolist()
+
                         response_data = {
                             'objective': int(objective),
                             'num_routes': int(K),
                             'elapsed_time': elapsed_time,
                             'feasibility': feasibility,
                             'routes': routes,
-                            'points': points
+                            'points': points,
+                            'distance_matrix': distance_matrix_list,
+                            'customer_demands': customer_demands,
+                            'capacity': params.get('capacity', None)  # Add capacity to the response
                         }
+
+                        logging.info(f"Response data: {response_data}")
 
                         self.send_response(200)
                         self.send_header('Content-type', 'application/json')
