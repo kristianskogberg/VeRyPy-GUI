@@ -46,15 +46,13 @@ document.getElementById("vrp-file").addEventListener("change", function () {
         readingDemands = false;
       } else if (readingNodes) {
         const parts = line.trim().split(/\s+/);
-        const index = parseInt(parts[0], 10);
         const x = parseFloat(parts[1]);
         const y = parseFloat(parts[2]);
-        distanceMatrix.push([index, x, y]);
+        distanceMatrix.push([x, y]);
       } else if (readingDemands) {
         const parts = line.trim().split(/\s+/);
-        const index = parseInt(parts[0], 10);
         const demand = parseInt(parts[1], 10);
-        customerDemands.push([index, demand]);
+        customerDemands.push(demand);
       }
     });
 
@@ -62,15 +60,10 @@ document.getElementById("vrp-file").addEventListener("change", function () {
     const coordinatesTextarea = document.getElementById("coordinates");
     const customerDemandsTextarea = document.getElementById("customer-demands");
 
-    let formattedCoordinates = "NODE_COORD_SECTION\n";
-    distanceMatrix.forEach((coords) => {
-      formattedCoordinates += `${coords[0]} ${coords[1]} ${coords[2]}\n`;
-    });
-
-    let formattedCustomerDemands = "DEMAND_SECTION\n";
-    customerDemands.forEach((demand) => {
-      formattedCustomerDemands += `${demand[0]} ${demand[1]}\n`;
-    });
+    let formattedCoordinates = distanceMatrix
+      .map((coords) => `${coords[0]} ${coords[1]}`)
+      .join("\n");
+    let formattedCustomerDemands = customerDemands.join("\n");
 
     coordinatesTextarea.value = formattedCoordinates;
     customerDemandsTextarea.value = formattedCustomerDemands;
@@ -262,22 +255,21 @@ document
 
 document.getElementById("solve").addEventListener("click", function () {
   const algorithm = document.getElementById("algorithm").value;
-  const capacity = parseInt(document.getElementById("capacity").value, null);
+  const capacity = document.getElementById("capacity").value;
   const coordinates = document.getElementById("coordinates").value;
-  const customerDemands = document
-    .getElementById("customer-demands")
-    .value.split("\n")
-    .map(Number);
+  const customerDemands = document.getElementById("customer-demands").value;
   const L = document.getElementById("L").value;
   const single = document.getElementById("single").checked;
   const minimize_K = document.getElementById("minimize_K").checked;
-  const vrpFile = document.getElementById("vrp-file").files[0];
 
   if (!algorithm) {
     alert("Please select an algorithm.");
     return;
   }
-  if (isNaN(capacity) || capacity <= 0) {
+  if (
+    capacity &&
+    (isNaN(parseInt(capacity, 10)) || parseInt(capacity, 10) <= 0)
+  ) {
     alert("Please enter a valid number for vehicle capacity.");
     return;
   }
@@ -285,7 +277,13 @@ document.getElementById("solve").addEventListener("click", function () {
     alert("Please add the coordinates.");
     return;
   }
-  if (!customerDemands.length) {
+
+  const customerDemandsArray = customerDemands
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map(Number);
+
+  if (customerDemands && !customerDemandsArray.length) {
     alert("Please add the customer demands.");
     return;
   }
@@ -308,141 +306,75 @@ document.getElementById("solve").addEventListener("click", function () {
 
   document.body.classList.add("no-hover");
 
-  const reader = new FileReader();
-  reader.onload = function (event) {
-    const vrpFileContent = event.target.result.split(",")[1];
-
-    const data = {
-      algorithm: algorithm,
-      capacity: capacity,
-      distance_matrix: coordinates
-        .split("\n")
-        .map((row) => row.split(" ").map(Number)),
-      customer_demands: customerDemands,
-      L: L ? parseInt(L, 10) : null,
-      single: single,
-      minimize_K: minimize_K,
-      vrp_file: vrpFileContent,
-    };
-
-    fetch("/run", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        document.getElementById("total-distance").textContent = data.objective;
-        document.getElementById("num-routes").textContent = data.num_routes;
-        document.getElementById(
-          "computation-time"
-        ).textContent = `${data.elapsed_time.toFixed(4)} seconds`;
-        document.getElementById("covering-feasibility").textContent = data
-          .feasibility[0]
-          ? "Feasible"
-          : "Infeasible";
-        document.getElementById("capacity-feasibility").textContent = data
-          .feasibility[1]
-          ? "Feasible"
-          : "Infeasible";
-        document.getElementById("route-cost-feasibility").textContent = data
-          .feasibility[2]
-          ? "Feasible"
-          : "Infeasible";
-
-        // Draw the solution visualization
-        const routes = data.routes;
-        const points = data.points;
-        const distanceMatrix = data.distance_matrix;
-        const customerDemands = data.customer_demands;
-        const capacity = data.capacity;
-        drawSolution(routes, points, distanceMatrix, customerDemands, capacity);
-
-        alert("Solution received. Check the result area.");
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("An error occurred: " + error.message);
-      })
-      .finally(() => {
-        elementsToDisable.forEach((element) => (element.disabled = false));
-        solveButton.textContent = "Solve";
-        document.body.classList.remove("no-hover");
-      });
+  const data = {
+    algorithm: algorithm,
+    capacity: capacity ? parseInt(capacity, 10) : null,
+    distance_matrix: coordinates
+      .split("\n")
+      .map((row, index) => [index + 1, ...row.split(" ").map(Number)]),
+    customer_demands: customerDemands
+      ? customerDemandsArray.map((demand, index) => [index + 1, demand])
+      : null,
+    L: L ? parseInt(L, 10) : null,
+    single: single,
+    minimize_K: minimize_K,
   };
 
-  reader.onerror = function (event) {
-    console.error("File could not be read! Code " + event.target.error.code);
-    alert("An error occurred while reading the file.");
-    elementsToDisable.forEach((element) => (element.disabled = false));
-    solveButton.textContent = "Solve";
-    document.body.classList.remove("no-hover");
-  };
+  console.log(data);
 
-  if (vrpFile) {
-    reader.readAsDataURL(vrpFile);
-  } else {
-    const data = {
-      algorithm: algorithm,
-      capacity: capacity,
-      distance_matrix: coordinates
-        .split("\n")
-        .map((row) => row.split(" ").map(Number)),
-      customer_demands: customerDemands,
-      L: L ? parseInt(L, 10) : null,
-      single: single,
-      minimize_K: minimize_K,
-    };
-
-    fetch("/run", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+  fetch("/run", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        return response.json().then((error) => {
+          throw new Error(error.error);
+        });
+      }
+      return response.json();
     })
-      .then((response) => response.json())
-      .then((data) => {
-        document.getElementById("total-distance").textContent = data.objective;
-        document.getElementById("num-routes").textContent = data.num_routes;
-        document.getElementById(
-          "computation-time"
-        ).textContent = `${data.elapsed_time.toFixed(4)} seconds`;
-        document.getElementById("covering-feasibility").textContent = data
-          .feasibility[0]
-          ? "Feasible"
-          : "Infeasible";
-        document.getElementById("capacity-feasibility").textContent = data
-          .feasibility[1]
-          ? "Feasible"
-          : "Infeasible";
-        document.getElementById("route-cost-feasibility").textContent = data
-          .feasibility[2]
-          ? "Feasible"
-          : "Infeasible";
+    .then((data) => {
+      document.getElementById("total-distance").textContent = data.objective;
+      document.getElementById("num-routes").textContent = data.num_routes;
+      document.getElementById(
+        "computation-time"
+      ).textContent = `${data.elapsed_time.toFixed(4)} seconds`;
+      document.getElementById("covering-feasibility").textContent = data
+        .feasibility[0]
+        ? "Feasible"
+        : "Infeasible";
+      document.getElementById("capacity-feasibility").textContent = data
+        .feasibility[1]
+        ? "Feasible"
+        : "Infeasible";
+      document.getElementById("route-cost-feasibility").textContent = data
+        .feasibility[2]
+        ? "Feasible"
+        : "Infeasible";
 
-        // Draw the solution visualization
-        const routes = data.routes;
-        const points = data.points;
-        const distanceMatrix = data.distance_matrix;
-        const customerDemands = data.customer_demands;
-        const capacity = data.capacity;
-        drawSolution(routes, points, distanceMatrix, customerDemands, capacity);
+      // Draw the solution visualization
+      const routes = data.routes;
+      const points = data.points;
+      const distanceMatrix = data.distance_matrix;
+      const customerDemands = data.customer_demands;
+      const capacity = data.capacity;
+      drawSolution(routes, points, distanceMatrix, customerDemands, capacity);
 
-        alert("Solution received. Check the result area.");
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("An error occurred: " + error.message);
-      })
-      .finally(() => {
-        elementsToDisable.forEach((element) => (element.disabled = false));
-        solveButton.textContent = "Solve";
-        document.body.classList.remove("no-hover");
-      });
-  }
+      alert("Solution received. Check the result area.");
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+      alert("An error occurred: " + error.message);
+    })
+    .finally(() => {
+      elementsToDisable.forEach((element) => (element.disabled = false));
+      solveButton.textContent = "Solve";
+      document.body.classList.remove("no-hover");
+    });
 });
 
 document.getElementById("reset").addEventListener("click", function () {

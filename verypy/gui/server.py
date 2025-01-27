@@ -1,17 +1,14 @@
-import http.server
-import socketserver
-import urllib.parse
+import os
+import tempfile
 import json
 import logging
-import os
-import base64
-import verypy.cvrp_io as cvrp_io
+from http.server import SimpleHTTPRequestHandler
+from socketserver import TCPServer
+from time import time
 from verypy.util import sol2routes
 from verypy.cvrp_ops import normalize_solution, recalculate_objective, validate_solution_feasibility
 from verypy import get_algorithms
-from urllib.parse import parse_qs
-import numpy as np
-from time import time
+from verypy.cvrp_io import read_TSPLIB_CVRP
 
 PORT = 8000
 
@@ -19,7 +16,33 @@ PORT = 8000
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger()
 
-class Handler(http.server.SimpleHTTPRequestHandler):
+def create_temp_vrp_file(params):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".vrp") as temp_vrp_file:
+        temp_vrp_file.write(f"NAME : temporary\n".encode())
+        temp_vrp_file.write(f"TYPE : CVRP\n".encode())
+        temp_vrp_file.write(f"DIMENSION : {len(params['distance_matrix'])}\n".encode())
+        temp_vrp_file.write(f"EDGE_WEIGHT_TYPE : EUC_2D\n".encode())
+        capacity = params.get('capacity', None)
+        if capacity is not None:
+            temp_vrp_file.write(f"CAPACITY : {capacity}\n".encode())
+        temp_vrp_file.write(f"NODE_COORD_SECTION\n".encode())
+        for i, coord in enumerate(params['distance_matrix']):
+            temp_vrp_file.write(f"{i + 1} {coord[1]} {coord[2]}\n".encode())
+        customer_demands = params.get('customer_demands', None)
+        if customer_demands is not None:
+            temp_vrp_file.write(f"DEMAND_SECTION\n".encode())
+            for i, demand in enumerate(customer_demands):
+                temp_vrp_file.write(f"{i + 1} {demand[1]}\n".encode())
+        temp_vrp_file.write(f"DEPOT_SECTION\n".encode())
+        temp_vrp_file.write(f"1\n-1\nEOF\n".encode())
+
+        # Log the contents of the temporary .vrp file
+        temp_vrp_file.seek(0)
+        logger.info("Temporary .vrp file contents:\n" + temp_vrp_file.read().decode())
+
+        return temp_vrp_file.name
+
+class Handler(SimpleHTTPRequestHandler):
     """
     This class serves the index.html file on GET requests to the root URL
     and handles POST requests to the /run endpoint to run the VeRyPy algorithm
@@ -32,7 +55,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.handle_algorithms()
             return
         logging.info(f"GET request for {self.path}")
-        return http.server.SimpleHTTPRequestHandler.do_GET(self)
+        return SimpleHTTPRequestHandler.do_GET(self)
 
     def handle_algorithms(self):
         try:
@@ -58,97 +81,91 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 post_data = self.rfile.read(content_length)
                 params = json.loads(post_data.decode('utf-8'))
 
-                if 'vrp_file' in params:
-                    logging.info("Handling base64-encoded .vrp file")
-                    vrp_file_content = base64.b64decode(params['vrp_file'])
-                    file_path = "/tmp/uploaded_file.vrp"
-                    with open(file_path, "wb") as f:
-                        f.write(vrp_file_content)
+                logging.info("Generating temporary .vrp file using provided parameters")
+                temp_vrp_file_path = create_temp_vrp_file(params)
+                problem = read_TSPLIB_CVRP(temp_vrp_file_path)
+                os.remove(temp_vrp_file_path)
 
-                    problem = cvrp_io.read_TSPLIB_CVRP(file_path)
-                    os.remove(file_path)
+                distance_matrix = problem.distance_matrix
+                customer_demands = problem.customer_demands
+                points = problem.coordinate_points
 
-                    distance_matrix = problem.distance_matrix
-                    customer_demands = problem.customer_demands
-                    points = problem.coordinate_points
+                algorithm = params.get('algorithm', 'No algorithm selected')
 
-                    algorithm = params.get('algorithm', 'No algorithm selected')
+                try:
+                    algos = get_algorithms('all')
+                    selected_algorithm = next((algo for algo in algos if algo[0] == algorithm), None)
+                    if not selected_algorithm:
+                        raise ValueError(f"Algorithm {algorithm} not found")
 
-                    try:
-                        algos = get_algorithms('all')
-                        selected_algorithm = next((algo for algo in algos if algo[0] == algorithm), None)
-                        if not selected_algorithm:
-                            raise ValueError(f"Algorithm {algorithm} not found")
+                    _, algo_name, _, algorithm_function = selected_algorithm
 
-                        _, algo_name, _, algorithm_function = selected_algorithm
+                    param_values = {
+                        'points': points,
+                        'D': distance_matrix,
+                        'd': customer_demands,
+                        'C': params.get('capacity', None),
+                        'L': params.get('L', None),
+                        'st': None,
+                        'wtt': None,
+                        'single': params.get('single', False),
+                        'minimize_K': params.get('minimize_K', False)
+                    }
 
-                        param_values = {
-                            'points': points,
-                            'D': distance_matrix,
-                            'd': customer_demands,
-                            'C': params.get('capacity', None),
-                            'L': params.get('L', None),
-                            'st': None,
-                            'wtt': None,
-                            'single': params.get('single', False),
-                            'minimize_K': params.get('minimize_K', False)
-                        }
+                    logging.info(f"Running algorithm {algo_name} with parameters: {param_values}")
 
-                        start_time = time()
-                        solution = algorithm_function(**param_values)
-                        elapsed_time = time() - start_time
+                    start_time = time()
+                    solution = algorithm_function(**param_values)
+                    elapsed_time = time() - start_time
 
-                        solution = normalize_solution(solution)
-                        objective = recalculate_objective(solution, distance_matrix)
-                        K = solution.count(0) - 1
-                        feasibility = validate_solution_feasibility(solution, distance_matrix, customer_demands, params.get('capacity', None), None, False)
-                        routes = sol2routes(solution)
+                    solution = normalize_solution(solution)
+                    objective = recalculate_objective(solution, distance_matrix)
+                    K = solution.count(0) - 1
+                    feasibility = validate_solution_feasibility(solution, distance_matrix, customer_demands, params.get('capacity', None), None, False)
+                    routes = sol2routes(solution)
 
-                        logging.info(f"Solution: {solution}")
-                        logging.info(f"Routes: {routes}")
+                    logging.info(f"Solution: {solution}")
+                    logging.info(f"Routes: {routes}")
 
-                        # Convert distance_matrix to a list
-                        distance_matrix_list = distance_matrix.tolist()
+                    # Convert distance_matrix to a list
+                    distance_matrix_list = distance_matrix.tolist()
 
-                        response_data = {
-                            'objective': int(objective),
-                            'num_routes': int(K),
-                            'elapsed_time': elapsed_time,
-                            'feasibility': feasibility,
-                            'routes': routes,
-                            'points': points,
-                            'distance_matrix': distance_matrix_list,
-                            'customer_demands': customer_demands,
-                            'capacity': params.get('capacity', None)  # Add capacity to the response
-                        }
+                    response_data = {
+                        'objective': int(objective),
+                        'num_routes': int(K),
+                        'elapsed_time': elapsed_time,
+                        'feasibility': feasibility,
+                        'routes': routes,
+                        'points': points,
+                        'distance_matrix': distance_matrix_list,
+                        'customer_demands': customer_demands,
+                        'capacity': params.get('capacity', None)  # Add capacity to the response
+                    }
 
-                        logging.info(f"Response data: {response_data}")
+                    logging.info(f"Response data: {response_data}")
 
-                        self.send_response(200)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(json.dumps(response_data).encode('utf-8'))
-                    except ImportError as e:
-                        logging.error(f"Error importing algorithm module: {e}")
-                        self.send_response(500)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(json.dumps({'error': f"Error importing algorithm module: {e}"}).encode('utf-8'))
-                    except AttributeError as e:
-                        logging.error(f"Error accessing algorithm function: {e}")
-                        self.send_response(500)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(json.dumps({'error': f"Error accessing algorithm function: {e}"}).encode('utf-8'))
-                    except Exception as e:
-                        logging.error(f"Error running algorithm: {e}")
-                        self.send_response(500)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(json.dumps({'error': f"Error running algorithm: {e}"}).encode('utf-8'))
-                else:
-                    raise ValueError("No vrp_file parameter found in the request")
-
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(response_data).encode('utf-8'))
+                except ImportError as e:
+                    logging.error(f"Error importing algorithm module: {e}")
+                    self.send_response(500)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'error': f"Error importing algorithm module: {e}"}).encode('utf-8'))
+                except AttributeError as e:
+                    logging.error(f"Error accessing algorithm function: {e}")
+                    self.send_response(500)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'error': f"Error accessing algorithm function: {e}"}).encode('utf-8'))
+                except Exception as e:
+                    logging.error(f"Error running algorithm: {e}")
+                    self.send_response(500)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'error': f"Error running algorithm: {e}"}).encode('utf-8'))
             except (KeyError, ValueError) as e:
                 logging.error(f"Error handling /run request: {e}")
                 self.send_response(400)
@@ -163,6 +180,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
 
 if __name__ == "__main__":
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    with TCPServer(("", PORT), Handler) as httpd:
         logging.info(f"Serving at port {PORT}")
         httpd.serve_forever()
