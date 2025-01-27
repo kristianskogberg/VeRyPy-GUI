@@ -6,9 +6,9 @@ from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from time import time
 from verypy.util import sol2routes
-from verypy.cvrp_ops import normalize_solution, recalculate_objective, validate_solution_feasibility
+from verypy.cvrp_ops import normalize_solution, recalculate_objective, validate_solution_feasibility, generate_missing_coordinates
 from verypy import get_algorithms
-from verypy.cvrp_io import read_TSPLIB_CVRP
+from verypy.cvrp_io import read_TSPLIB_CVRP, read_TSBLIB_additional_constraints
 
 PORT = 8000
 
@@ -19,20 +19,23 @@ logger = logging.getLogger()
 def create_temp_vrp_file(params):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vrp") as temp_vrp_file:
         temp_vrp_file.write(f"NAME : temporary\n".encode())
-        temp_vrp_file.write(f"TYPE : CVRP\n".encode())
+        temp_vrp_file.write(f"TYPE : {params.get('type', 'CVRP')}\n".encode())
         temp_vrp_file.write(f"DIMENSION : {len(params['distance_matrix'])}\n".encode())
-        temp_vrp_file.write(f"EDGE_WEIGHT_TYPE : EUC_2D\n".encode())
+        temp_vrp_file.write(f"EDGE_WEIGHT_TYPE : {params.get('edge_weight_type', 'EUC_2D')}\n".encode())
         capacity = params.get('capacity', None)
         if capacity is not None:
             temp_vrp_file.write(f"CAPACITY : {capacity}\n".encode())
         temp_vrp_file.write(f"NODE_COORD_SECTION\n".encode())
         for i, coord in enumerate(params['distance_matrix']):
-            temp_vrp_file.write(f"{i + 1} {coord[1]} {coord[2]}\n".encode())
+            if len(coord) != 2:
+                logger.error(f"Invalid coordinate data: {coord}")
+                continue
+            temp_vrp_file.write(f"{i + 1} {coord[0]} {coord[1]}\n".encode())
         customer_demands = params.get('customer_demands', None)
         if customer_demands is not None:
             temp_vrp_file.write(f"DEMAND_SECTION\n".encode())
             for i, demand in enumerate(customer_demands):
-                temp_vrp_file.write(f"{i + 1} {demand[1]}\n".encode())
+                temp_vrp_file.write(f"{i + 1} {demand}\n".encode())
         temp_vrp_file.write(f"DEPOT_SECTION\n".encode())
         temp_vrp_file.write(f"1\n-1\nEOF\n".encode())
 
@@ -84,11 +87,15 @@ class Handler(SimpleHTTPRequestHandler):
                 logging.info("Generating temporary .vrp file using provided parameters")
                 temp_vrp_file_path = create_temp_vrp_file(params)
                 problem = read_TSPLIB_CVRP(temp_vrp_file_path)
+                N, points, dd_points, customer_demands, distance_matrix, C, ewt = read_TSPLIB_CVRP(temp_vrp_file_path)
+                K, L, st = read_TSBLIB_additional_constraints(temp_vrp_file_path)
                 os.remove(temp_vrp_file_path)
 
-                distance_matrix = problem.distance_matrix
-                customer_demands = problem.customer_demands
-                points = problem.coordinate_points
+                if points is None:
+                    if dd_points is not None:
+                        points = dd_points
+                    else:
+                        points, ewt = generate_missing_coordinates(customer_demands)
 
                 algorithm = params.get('algorithm', 'No algorithm selected')
 
@@ -112,7 +119,7 @@ class Handler(SimpleHTTPRequestHandler):
                         'minimize_K': params.get('minimize_K', False)
                     }
 
-                    logging.info(f"Running algorithm {algo_name} with parameters: {param_values}")
+                    # logging.info(f"Running algorithm {algo_name} with parameters: {param_values}")
 
                     start_time = time()
                     solution = algorithm_function(**param_values)

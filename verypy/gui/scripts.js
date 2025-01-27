@@ -1,22 +1,18 @@
 document.addEventListener("DOMContentLoaded", function () {
   fetch("/algorithms")
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    })
+    .then((response) => response.json())
     .then((algorithms) => {
       const algorithmSelect = document.getElementById("algorithm");
       algorithms.forEach((algorithm) => {
         const option = document.createElement("option");
         option.value = algorithm.value;
-        option.textContent = algorithm.description;
+        option.textContent = `${algorithm.description}`;
         algorithmSelect.appendChild(option);
       });
     })
     .catch((error) => {
-      console.error("Error loading algorithms:", error);
+      console.error("Error fetching algorithms:", error);
+      alert("An error occurred while fetching algorithms.");
     });
 });
 
@@ -25,48 +21,56 @@ document.getElementById("vrp-file").addEventListener("change", function () {
   const reader = new FileReader();
 
   reader.onload = function (event) {
-    const content = event.target.result;
-    const lines = content.split("\n");
-
-    let capacity = null;
-    let readingNodes = false;
-    let readingDemands = false;
-    const distanceMatrix = [];
+    const fileContent = event.target.result;
+    const lines = fileContent.split("\n");
+    const coordinates = [];
     const customerDemands = [];
+    let capacity = null;
+    let edgeWeightType = null;
+    let type = null;
+    let inNodeCoordSection = false;
+    let inDemandSection = false;
 
     lines.forEach((line) => {
-      if (line.startsWith("CAPACITY")) {
-        capacity = parseInt(line.split(":")[1].trim(), 10);
-      } else if (line.startsWith("NODE_COORD_SECTION")) {
-        readingNodes = true;
+      line = line.trim();
+      if (line.startsWith("NODE_COORD_SECTION")) {
+        inNodeCoordSection = true;
+        inDemandSection = false;
       } else if (line.startsWith("DEMAND_SECTION")) {
-        readingNodes = false;
-        readingDemands = true;
-      } else if (line.startsWith("DEPOT_SECTION")) {
-        readingDemands = false;
-      } else if (readingNodes) {
-        const parts = line.trim().split(/\s+/);
-        const x = parseFloat(parts[1]);
-        const y = parseFloat(parts[2]);
-        distanceMatrix.push([x, y]);
-      } else if (readingDemands) {
-        const parts = line.trim().split(/\s+/);
-        const demand = parseInt(parts[1], 10);
-        customerDemands.push(demand);
+        inNodeCoordSection = false;
+        inDemandSection = true;
+      } else if (line.startsWith("DEPOT_SECTION") || line.startsWith("EOF")) {
+        inNodeCoordSection = false;
+        inDemandSection = false;
+      } else if (line.startsWith("CAPACITY")) {
+        capacity = line.split(":")[1].trim();
+      } else if (line.startsWith("EDGE_WEIGHT_TYPE")) {
+        edgeWeightType = line.split(":")[1].trim();
+      } else if (line.startsWith("TYPE")) {
+        type = line.split(":")[1].trim();
+      } else if (inNodeCoordSection) {
+        const parts = line.split(/\s+/);
+        if (parts.length === 3) {
+          coordinates.push(parts.slice(1).join(" "));
+        }
+      } else if (inDemandSection) {
+        const parts = line.split(/\s+/);
+        if (parts.length === 2) {
+          customerDemands.push(parts[1]);
+        }
       }
     });
 
-    document.getElementById("capacity").value = capacity;
-    const coordinatesTextarea = document.getElementById("coordinates");
-    const customerDemandsTextarea = document.getElementById("customer-demands");
+    document.getElementById("coordinates").value = coordinates.join("\n");
+    document.getElementById("customer-demands").value =
+      customerDemands.join("\n");
+    if (capacity) {
+      document.getElementById("capacity").value = capacity;
+    }
 
-    let formattedCoordinates = distanceMatrix
-      .map((coords) => `${coords[0]} ${coords[1]}`)
-      .join("\n");
-    let formattedCustomerDemands = customerDemands.join("\n");
-
-    coordinatesTextarea.value = formattedCoordinates;
-    customerDemandsTextarea.value = formattedCustomerDemands;
+    // Store the extracted attributes in hidden fields
+    document.getElementById("edge-weight-type").value = edgeWeightType;
+    document.getElementById("type").value = type;
   };
 
   reader.readAsText(file);
@@ -81,12 +85,15 @@ function calculateRouteCost(route, distanceMatrix) {
 }
 
 function calculateUtilizationRate(route, customerDemands, capacity) {
+  if (!customerDemands || !capacity) {
+    return "NaN";
+  }
   let totalDemand = 0;
   for (let i = 1; i < route.length - 1; i++) {
-    // Skip the depot at the start and end
     totalDemand += customerDemands[route[i]];
   }
-  return (totalDemand / capacity) * 100; // Return as percentage
+  utilizationRate = (totalDemand / capacity) * 100;
+  return `${utilizationRate.toFixed(2)} %`;
 }
 
 function drawSolution(
@@ -165,7 +172,7 @@ function drawSolution(
     cell1.textContent = `Route #${routeIndex + 1}`;
     cell1.style.color = routeColor; // Set the color of the route name
     cell2.textContent = routeCost.toFixed(2);
-    cell3.textContent = `${utilizationRate.toFixed(2)} %`;
+    cell3.textContent = utilizationRate;
     cell4.textContent = route.join(" -> ");
   });
 }
@@ -253,6 +260,13 @@ document
   .getElementById("export-metrics")
   .addEventListener("click", exportMetrics);
 
+document
+  .getElementById("export-visualization")
+  .addEventListener("click", exportVisualization);
+document
+  .getElementById("export-metrics")
+  .addEventListener("click", exportMetrics);
+
 document.getElementById("solve").addEventListener("click", function () {
   const algorithm = document.getElementById("algorithm").value;
   const capacity = document.getElementById("capacity").value;
@@ -261,6 +275,8 @@ document.getElementById("solve").addEventListener("click", function () {
   const L = document.getElementById("L").value;
   const single = document.getElementById("single").checked;
   const minimize_K = document.getElementById("minimize_K").checked;
+  const edgeWeightType = document.getElementById("edge-weight-type").value;
+  const type = document.getElementById("type").value;
 
   if (!algorithm) {
     alert("Please select an algorithm.");
@@ -281,7 +297,7 @@ document.getElementById("solve").addEventListener("click", function () {
   const customerDemandsArray = customerDemands
     .split("\n")
     .filter((line) => line.trim() !== "")
-    .map(Number);
+    .map((line) => parseInt(line, 10));
 
   if (customerDemands && !customerDemandsArray.length) {
     alert("Please add the customer demands.");
@@ -289,12 +305,12 @@ document.getElementById("solve").addEventListener("click", function () {
   }
 
   // Clear solution metrics
-  document.getElementById("total-distance").textContent = "";
-  document.getElementById("num-routes").textContent = "";
-  document.getElementById("computation-time").textContent = "";
-  document.getElementById("covering-feasibility").textContent = "";
-  document.getElementById("capacity-feasibility").textContent = "";
-  document.getElementById("route-cost-feasibility").textContent = "";
+  document.getElementById("total-distance").textContent = "...";
+  document.getElementById("num-routes").textContent = "...";
+  document.getElementById("computation-time").textContent = "...";
+  document.getElementById("covering-feasibility").textContent = "...";
+  document.getElementById("capacity-feasibility").textContent = "...";
+  document.getElementById("route-cost-feasibility").textContent = "...";
 
   const elementsToDisable = document.querySelectorAll(
     "button, input, select, textarea"
@@ -311,13 +327,13 @@ document.getElementById("solve").addEventListener("click", function () {
     capacity: capacity ? parseInt(capacity, 10) : null,
     distance_matrix: coordinates
       .split("\n")
-      .map((row, index) => [index + 1, ...row.split(" ").map(Number)]),
-    customer_demands: customerDemands
-      ? customerDemandsArray.map((demand, index) => [index + 1, demand])
-      : null,
+      .map((row) => row.split(" ").map(Number)),
+    customer_demands: customerDemands ? customerDemandsArray : null,
     L: L ? parseInt(L, 10) : null,
     single: single,
     minimize_K: minimize_K,
+    edge_weight_type: edgeWeightType,
+    type: type,
   };
 
   console.log(data);
@@ -356,6 +372,8 @@ document.getElementById("solve").addEventListener("click", function () {
         ? "Feasible"
         : "Infeasible";
 
+      console.log(data);
+
       // Draw the solution visualization
       const routes = data.routes;
       const points = data.points;
@@ -363,8 +381,6 @@ document.getElementById("solve").addEventListener("click", function () {
       const customerDemands = data.customer_demands;
       const capacity = data.capacity;
       drawSolution(routes, points, distanceMatrix, customerDemands, capacity);
-
-      alert("Solution received. Check the result area.");
     })
     .catch((error) => {
       console.error("Error:", error);
@@ -386,4 +402,25 @@ document.getElementById("reset").addEventListener("click", function () {
   document.getElementById("single").checked = false;
   document.getElementById("minimize_K").checked = false;
   document.getElementById("algorithm").value = "";
+  document.getElementById("edge-weight-type").value = "";
+  document.getElementById("type").value = "";
+
+  // Clear solution metrics
+  document.getElementById("total-distance").textContent = "";
+  document.getElementById("num-routes").textContent = "";
+  document.getElementById("computation-time").textContent = "";
+  document.getElementById("covering-feasibility").textContent = "";
+  document.getElementById("capacity-feasibility").textContent = "";
+  document.getElementById("route-cost-feasibility").textContent = "";
+
+  // Clear solution visualization
+  const canvas = document.getElementById("solution-canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Clear route costs table
+  const routeCostsTableBody = document
+    .getElementById("route-costs-table")
+    .getElementsByTagName("tbody")[0];
+  routeCostsTableBody.innerHTML = "";
 });
