@@ -2,7 +2,7 @@ import os
 import tempfile
 import json
 import logging
-from http.server import SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 from socketserver import TCPServer
 from time import time
 from verypy.util import sol2routes
@@ -20,13 +20,13 @@ def create_temp_vrp_file(params):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vrp") as temp_vrp_file:
         temp_vrp_file.write(f"NAME : temporary\n".encode())
         temp_vrp_file.write(f"TYPE : {params.get('type', 'CVRP')}\n".encode())
-        temp_vrp_file.write(f"DIMENSION : {len(params['distance_matrix'])}\n".encode())
+        temp_vrp_file.write(f"DIMENSION : {len(params['coordinates'])}\n".encode())
         temp_vrp_file.write(f"EDGE_WEIGHT_TYPE : {params.get('edge_weight_type', 'EUC_2D')}\n".encode())
         capacity = params.get('capacity', None)
         if capacity is not None:
             temp_vrp_file.write(f"CAPACITY : {capacity}\n".encode())
         temp_vrp_file.write(f"NODE_COORD_SECTION\n".encode())
-        for i, coord in enumerate(params['distance_matrix']):
+        for i, coord in enumerate(params['coordinates']):
             if len(coord) != 2:
                 logger.error(f"Invalid coordinate data: {coord}")
                 continue
@@ -53,7 +53,7 @@ class Handler(SimpleHTTPRequestHandler):
     """
     def do_GET(self):
         if self.path == '/':
-            self.path = 'index.html'
+            self.path = '/index.html'
         elif self.path == '/algorithms':
             self.handle_algorithms()
             return
@@ -187,6 +187,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
 
 if __name__ == "__main__":
-    with TCPServer(("", PORT), Handler) as httpd:
+    web_dir = os.path.join(os.path.dirname(__file__), '../frontend')
+    os.chdir(web_dir)
+    with HTTPServer(("", PORT), Handler) as httpd:
         logging.info(f"Serving at port {PORT}")
         httpd.serve_forever()

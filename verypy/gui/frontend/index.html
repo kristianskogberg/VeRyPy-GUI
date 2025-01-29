@@ -17,23 +17,37 @@
                 </div>
                 <div class="card-content">
                     <div class="form-group">
-                        <label for="vrp-file">Upload .vrp or .tsp file</label>
+                        <label for="vrp-file">Upload file (.vrp or .tsp)</label>
                         <input type="file" id="vrp-file" accept=".vrp,.tsp">
                     </div>
                     <div class="form-group">
+                        <label for="type">Problem Type</label>
+                        <select id="type" required>
+                            <option value="CVRP" selected>CVRP</option>
+                            <option value="TSP">TSP</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edge-weight-type">Edge Weight Type</label>
+                        <select id="edge-weight-type" required>
+                            <option value="EUC_2D" selected>EUC_2D</option>
+                            <option value="GEO">GEO</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="coordinates">Coordinates</label>
-                        <textarea id="coordinates" rows="5" placeholder="Enter coordinates as numbers (one per line, format: x y)"></textarea>
+                        <textarea id="coordinates" rows="5" required placeholder="Enter coordinates as numbers (one per line, format: x y)"></textarea>
                     </div>
                     <div class="form-group">
                         <label for="customer-demands">Customer Demands</label>
                         <textarea id="customer-demands" rows="5" placeholder="Enter customer demands as numbers (one per line, format: demand)"></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="capacity">Vehicle Capacity (C)</label>
+                        <label for="capacity">Capacity</label>
                         <input type="number" id="capacity" placeholder="Enter vehicle capacity constraint (optional)">
                     </div>
                     <div class="form-group">
-                        <label for="L">Maximum route length/duration/cost (L)</label>
+                        <label for="L">Maximum route length/duration/cost</label>
                         <input type="number" id="L" placeholder="Enter route length/duration/cost constraint (optional)">
                     </div>
                     <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
@@ -41,12 +55,12 @@
                         <input type="checkbox" id="single" checked>
                     </div>
                     <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                        <label for="minimize_K" style="margin-bottom: 0;">Minimize Number of Routes (K)</label>
+                        <label for="minimize_K" style="margin-bottom: 0;">Minimize Number of Routes</label>
                         <input type="checkbox" id="minimize_K">
                     </div>
                     <div class="form-group">
                         <label for="algorithm">Select Algorithm</label>
-                        <select id="algorithm">
+                        <select id="algorithm" required>
                             <option value="">Choose an algorithm</option>
                         </select>
                     </div>
@@ -115,10 +129,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Hidden fields to store extracted attributes -->
-    <input type="hidden" id="edge-weight-type">
-    <input type="hidden" id="type">
 
     <script src="scripts.js"></script>
 </body>

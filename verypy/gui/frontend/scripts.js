@@ -64,16 +64,42 @@ document.getElementById("vrp-file").addEventListener("change", function () {
     document.getElementById("coordinates").value = coordinates.join("\n");
     document.getElementById("customer-demands").value =
       customerDemands.join("\n");
-    if (capacity) {
-      document.getElementById("capacity").value = capacity;
-    }
+
+    document.getElementById("capacity").value = capacity;
 
     // Store the extracted attributes in hidden fields
     document.getElementById("edge-weight-type").value = edgeWeightType;
     document.getElementById("type").value = type;
+
+    const capacityElement = document.getElementById("capacity").parentElement;
+    const customerDemandsElement =
+      document.getElementById("customer-demands").parentElement;
+
+    if (type === "TSP") {
+      capacityElement.style.display = "none";
+      customerDemandsElement.style.display = "none";
+    } else {
+      capacityElement.style.display = "block";
+      customerDemandsElement.style.display = "block";
+    }
   };
 
   reader.readAsText(file);
+});
+
+document.getElementById("type").addEventListener("change", function () {
+  const type = document.getElementById("type").value;
+  const capacityElement = document.getElementById("capacity").parentElement;
+  const customerDemandsElement =
+    document.getElementById("customer-demands").parentElement;
+
+  if (type === "TSP") {
+    capacityElement.style.display = "none";
+    customerDemandsElement.style.display = "none";
+  } else {
+    capacityElement.style.display = "block";
+    customerDemandsElement.style.display = "block";
+  }
 });
 
 function calculateRouteCost(route, distanceMatrix) {
@@ -86,7 +112,7 @@ function calculateRouteCost(route, distanceMatrix) {
 
 function calculateUtilizationRate(route, customerDemands, capacity) {
   if (!customerDemands || !capacity) {
-    return "NaN";
+    return "N/A";
   }
   let totalDemand = 0;
   for (let i = 1; i < route.length - 1; i++) {
@@ -269,7 +295,7 @@ document
 
 document.getElementById("solve").addEventListener("click", function () {
   const algorithm = document.getElementById("algorithm").value;
-  const capacity = document.getElementById("capacity").value;
+  let capacity = document.getElementById("capacity").value;
   const coordinates = document.getElementById("coordinates").value;
   const customerDemands = document.getElementById("customer-demands").value;
   const L = document.getElementById("L").value;
@@ -294,7 +320,7 @@ document.getElementById("solve").addEventListener("click", function () {
     return;
   }
 
-  const customerDemandsArray = customerDemands
+  let customerDemandsArray = customerDemands
     .split("\n")
     .filter((line) => line.trim() !== "")
     .map((line) => parseInt(line, 10));
@@ -302,6 +328,24 @@ document.getElementById("solve").addEventListener("click", function () {
   if (customerDemands && !customerDemandsArray.length) {
     alert("Please add the customer demands.");
     return;
+  }
+
+  if (type === "TSP") {
+    // Capacity and customer demands are not used for TSP
+    capacity = null;
+    customerDemandsArray = null;
+  } else if (type === "CVRP") {
+    const coordinatesArray = coordinates
+      .split("\n")
+      .filter((line) => line.trim() !== "");
+    if (coordinatesArray.length !== customerDemandsArray.length) {
+      alert(
+        "For CVRP, the number of coordinates and customer demands must match."
+      );
+      return;
+    }
+    document.getElementById("capacity").style.display = "block";
+    document.getElementById("customer-demands").style.display = "block";
   }
 
   // Clear solution metrics
@@ -325,7 +369,7 @@ document.getElementById("solve").addEventListener("click", function () {
   const data = {
     algorithm: algorithm,
     capacity: capacity ? parseInt(capacity, 10) : null,
-    distance_matrix: coordinates
+    coordinates: coordinates
       .split("\n")
       .map((row) => row.split(" ").map(Number)),
     customer_demands: customerDemands ? customerDemandsArray : null,
