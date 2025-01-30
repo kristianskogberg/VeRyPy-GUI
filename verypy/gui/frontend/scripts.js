@@ -78,9 +78,13 @@ document.getElementById("vrp-file").addEventListener("change", function () {
     if (type === "TSP") {
       capacityElement.style.display = "none";
       customerDemandsElement.style.display = "none";
+      document.getElementById("coordinates").placeholder =
+        "Enter coordinates as numbers (one per line, format: latitude longitude)";
     } else {
       capacityElement.style.display = "block";
       customerDemandsElement.style.display = "block";
+      document.getElementById("coordinates").placeholder =
+        "Enter coordinates as numbers (one per line, format: x y)";
     }
   };
 
@@ -96,9 +100,13 @@ document.getElementById("type").addEventListener("change", function () {
   if (type === "TSP") {
     capacityElement.style.display = "none";
     customerDemandsElement.style.display = "none";
+    document.getElementById("coordinates").placeholder =
+      "Enter coordinates as numbers (one per line, format: latitude longitude)";
   } else {
     capacityElement.style.display = "block";
     customerDemandsElement.style.display = "block";
+    document.getElementById("coordinates").placeholder =
+      "Enter coordinates as numbers (one per line, format: x y)";
   }
 });
 
@@ -304,19 +312,26 @@ document.getElementById("solve").addEventListener("click", function () {
   const edgeWeightType = document.getElementById("edge-weight-type").value;
   const type = document.getElementById("type").value;
 
-  if (!algorithm) {
-    alert("Please select an algorithm.");
+  if (!coordinates.trim()) {
+    alert("Please add coordinates.");
     return;
   }
+
+  // Validate coordinates format
+  const coordinatesArray = coordinates
+    .split("\n")
+    .filter((line) => line.trim() !== "");
+
+  if (coordinatesArray.length < 2) {
+    alert("At least two coordinates are required.");
+    return;
+  }
+
   if (
     capacity &&
     (isNaN(parseInt(capacity, 10)) || parseInt(capacity, 10) <= 0)
   ) {
     alert("Please enter a valid number for vehicle capacity.");
-    return;
-  }
-  if (!coordinates.trim()) {
-    alert("Please add the coordinates.");
     return;
   }
 
@@ -326,8 +341,24 @@ document.getElementById("solve").addEventListener("click", function () {
     .map((line) => parseInt(line, 10));
 
   if (customerDemands && !customerDemandsArray.length) {
-    alert("Please add the customer demands.");
+    alert("Please add customer demands.");
     return;
+  }
+
+  for (const line of coordinatesArray) {
+    const parts = line.trim().split(/\s+/);
+    if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
+      alert("Coordinates must follow the format 'number number' in each row.");
+      return;
+    }
+  }
+
+  // Validate customer demands format
+  for (const demand of customerDemandsArray) {
+    if (isNaN(demand)) {
+      alert("Customer demands must be formatted as a single 'number' per row.");
+      return;
+    }
   }
 
   if (type === "TSP") {
@@ -335,9 +366,6 @@ document.getElementById("solve").addEventListener("click", function () {
     capacity = null;
     customerDemandsArray = null;
   } else if (type === "CVRP") {
-    const coordinatesArray = coordinates
-      .split("\n")
-      .filter((line) => line.trim() !== "");
     if (coordinatesArray.length !== customerDemandsArray.length) {
       alert(
         "For CVRP, the number of coordinates and customer demands must match."
@@ -346,6 +374,11 @@ document.getElementById("solve").addEventListener("click", function () {
     }
     document.getElementById("capacity").style.display = "block";
     document.getElementById("customer-demands").style.display = "block";
+  }
+
+  if (!algorithm) {
+    alert("Please select an algorithm.");
+    return;
   }
 
   // Clear solution metrics
@@ -438,24 +471,32 @@ document.getElementById("solve").addEventListener("click", function () {
 });
 
 document.getElementById("reset").addEventListener("click", function () {
+  // reset input fields to default values
   document.getElementById("vrp-file").value = "";
   document.getElementById("capacity").value = "";
   document.getElementById("coordinates").value = "";
   document.getElementById("customer-demands").value = "";
   document.getElementById("L").value = "";
-  document.getElementById("single").checked = false;
+  document.getElementById("single").checked = true;
   document.getElementById("minimize_K").checked = false;
   document.getElementById("algorithm").value = "";
-  document.getElementById("edge-weight-type").value = "";
-  document.getElementById("type").value = "";
+  document.getElementById("edge-weight-type").value = "EUC_2D";
+  document.getElementById("type").value = "CVRP";
+
+  // Display the capacity and customer demands fields
+  document.getElementById("capacity").parentElement.style.display = "block";
+  document.getElementById("customer-demands").parentElement.style.display =
+    "block";
+  document.getElementById("coordinates").placeholder =
+    "Enter coordinates as numbers (one per line, format: x y)";
 
   // Clear solution metrics
-  document.getElementById("total-distance").textContent = "";
-  document.getElementById("num-routes").textContent = "";
-  document.getElementById("computation-time").textContent = "";
-  document.getElementById("covering-feasibility").textContent = "";
-  document.getElementById("capacity-feasibility").textContent = "";
-  document.getElementById("route-cost-feasibility").textContent = "";
+  document.getElementById("total-distance").textContent = "-";
+  document.getElementById("num-routes").textContent = "-";
+  document.getElementById("computation-time").textContent = "-";
+  document.getElementById("covering-feasibility").textContent = "-";
+  document.getElementById("capacity-feasibility").textContent = "-";
+  document.getElementById("route-cost-feasibility").textContent = "-";
 
   // Clear solution visualization
   const canvas = document.getElementById("solution-canvas");
