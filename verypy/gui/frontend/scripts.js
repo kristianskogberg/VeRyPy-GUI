@@ -28,20 +28,29 @@ document.getElementById("vrp-file").addEventListener("change", function () {
     let capacity = null;
     let edgeWeightType = null;
     let type = null;
+    let depotNode = 1;
     let inNodeCoordSection = false;
     let inDemandSection = false;
+    let inDepotSection = false;
 
     lines.forEach((line) => {
       line = line.trim();
       if (line.startsWith("NODE_COORD_SECTION")) {
         inNodeCoordSection = true;
         inDemandSection = false;
+        inDepotSection = false;
       } else if (line.startsWith("DEMAND_SECTION")) {
         inNodeCoordSection = false;
         inDemandSection = true;
-      } else if (line.startsWith("DEPOT_SECTION") || line.startsWith("EOF")) {
+        inDepotSection = false;
+      } else if (line.startsWith("DEPOT_SECTION")) {
         inNodeCoordSection = false;
         inDemandSection = false;
+        inDepotSection = true;
+      } else if (line.startsWith("EOF")) {
+        inNodeCoordSection = false;
+        inDemandSection = false;
+        inDepotSection = false;
       } else if (line.startsWith("CAPACITY")) {
         capacity = line.split(":")[1].trim();
       } else if (line.startsWith("EDGE_WEIGHT_TYPE")) {
@@ -58,14 +67,19 @@ document.getElementById("vrp-file").addEventListener("change", function () {
         if (parts.length === 2) {
           customerDemands.push(parts[1]);
         }
+      } else if (inDepotSection) {
+        if (!isNaN(line) && parseInt(line, 10) !== -1) {
+          depotNode = parseInt(line, 10);
+          inDepotSection = false; // Stop reading after the depot node is found
+        }
       }
     });
 
     document.getElementById("coordinates").value = coordinates.join("\n");
     document.getElementById("customer-demands").value =
       customerDemands.join("\n");
-
     document.getElementById("capacity").value = capacity;
+    document.getElementById("depot-node").value = depotNode;
 
     // Store the extracted attributes in hidden fields
     document.getElementById("edge-weight-type").value = edgeWeightType;
@@ -78,13 +92,21 @@ document.getElementById("vrp-file").addEventListener("change", function () {
     if (type === "TSP") {
       capacityElement.style.display = "none";
       customerDemandsElement.style.display = "none";
-      document.getElementById("coordinates").placeholder =
-        "Enter coordinates as numbers (one per line, format: latitude longitude)";
+      document
+        .getElementById("coordinates")
+        .setAttribute(
+          "placeholder",
+          "Enter coordinates as numbers (one per line, format: latitude longitude)"
+        );
     } else {
       capacityElement.style.display = "block";
       customerDemandsElement.style.display = "block";
-      document.getElementById("coordinates").placeholder =
-        "Enter coordinates as numbers (one per line, format: x y)";
+      document
+        .getElementById("coordinates")
+        .setAttribute(
+          "placeholder",
+          "Enter coordinates as numbers (one per line, format: x y)"
+        );
     }
   };
 
@@ -96,15 +118,18 @@ document.getElementById("type").addEventListener("change", function () {
   const capacityElement = document.getElementById("capacity").parentElement;
   const customerDemandsElement =
     document.getElementById("customer-demands").parentElement;
+  const depotNodeElement = document.getElementById("depot-node").parentElement;
 
   if (type === "TSP") {
     capacityElement.style.display = "none";
     customerDemandsElement.style.display = "none";
+    depotNodeElement.style.display = "none";
     document.getElementById("coordinates").placeholder =
       "Enter coordinates as numbers (one per line, format: latitude longitude)";
   } else {
     capacityElement.style.display = "block";
     customerDemandsElement.style.display = "block";
+    depotNodeElement.style.display = "block";
     document.getElementById("coordinates").placeholder =
       "Enter coordinates as numbers (one per line, format: x y)";
   }
@@ -311,6 +336,7 @@ document.getElementById("solve").addEventListener("click", function () {
   const minimize_K = document.getElementById("minimize_K").checked;
   const edgeWeightType = document.getElementById("edge-weight-type").value;
   const type = document.getElementById("type").value;
+  const depotNode = document.getElementById("depot-node").value;
 
   if (!coordinates.trim()) {
     alert("Please add coordinates.");
@@ -376,6 +402,17 @@ document.getElementById("solve").addEventListener("click", function () {
     document.getElementById("customer-demands").style.display = "block";
   }
 
+  if (
+    isNaN(parseInt(depotNode, 10)) ||
+    parseInt(depotNode, 10) < 1 ||
+    parseInt(depotNode, 10) > coordinatesArray.length
+  ) {
+    alert(
+      `The depot node must be between 1 and the number of coordinates (${coordinatesArray.length}).`
+    );
+    return;
+  }
+
   if (!algorithm) {
     alert("Please select an algorithm.");
     return;
@@ -411,6 +448,7 @@ document.getElementById("solve").addEventListener("click", function () {
     minimize_K: minimize_K,
     edge_weight_type: edgeWeightType,
     type: type,
+    depot_node: depotNode ? parseInt(depotNode, 10) : 1,
   };
 
   console.log(data);
@@ -482,6 +520,7 @@ document.getElementById("reset").addEventListener("click", function () {
   document.getElementById("algorithm").value = "";
   document.getElementById("edge-weight-type").value = "EUC_2D";
   document.getElementById("type").value = "CVRP";
+  document.getElementById("depot-node").value = "1";
 
   // Display the capacity and customer demands fields
   document.getElementById("capacity").parentElement.style.display = "block";
@@ -508,4 +547,160 @@ document.getElementById("reset").addEventListener("click", function () {
     .getElementById("route-costs-table")
     .getElementsByTagName("tbody")[0];
   routeCostsTableBody.innerHTML = "";
+});
+
+document.getElementById("example-vrp").addEventListener("click", function () {
+  fetch("examples/example.vrp")
+    .then((response) => response.text())
+    .then((data) => {
+      const lines = data.split("\n");
+      const coordinates = [];
+      const customerDemands = [];
+      let capacity = null;
+      let edgeWeightType = null;
+      let type = null;
+      let depotNode = 1;
+      let inNodeCoordSection = false;
+      let inDemandSection = false;
+      let inDepotSection = false;
+
+      lines.forEach((line) => {
+        line = line.trim();
+        if (line.startsWith("NODE_COORD_SECTION")) {
+          inNodeCoordSection = true;
+          inDemandSection = false;
+          inDepotSection = false;
+        } else if (line.startsWith("DEMAND_SECTION")) {
+          inNodeCoordSection = false;
+          inDemandSection = true;
+          inDepotSection = false;
+        } else if (line.startsWith("DEPOT_SECTION")) {
+          inNodeCoordSection = false;
+          inDemandSection = false;
+          inDepotSection = true;
+        } else if (line.startsWith("EOF")) {
+          inNodeCoordSection = false;
+          inDemandSection = false;
+          inDepotSection = false;
+        } else if (line.startsWith("CAPACITY")) {
+          capacity = line.split(":")[1].trim();
+        } else if (line.startsWith("EDGE_WEIGHT_TYPE")) {
+          edgeWeightType = line.split(":")[1].trim();
+        } else if (line.startsWith("TYPE")) {
+          type = line.split(":")[1].trim();
+        } else if (inNodeCoordSection) {
+          const parts = line.split(/\s+/);
+          if (parts.length === 3) {
+            coordinates.push(parts.slice(1).join(" "));
+          }
+        } else if (inDemandSection) {
+          const parts = line.split(/\s+/);
+          if (parts.length === 2) {
+            customerDemands.push(parts[1]);
+          }
+        } else if (inDepotSection) {
+          if (!isNaN(line) && parseInt(line, 10) !== -1) {
+            depotNode = parseInt(line, 10);
+            inDepotSection = false; // Stop reading after the depot node is found
+          }
+        }
+      });
+
+      document.getElementById("coordinates").value = coordinates.join("\n");
+      document.getElementById("customer-demands").value =
+        customerDemands.join("\n");
+      document.getElementById("capacity").value = capacity;
+      document.getElementById("depot-node").value = depotNode;
+      document.getElementById("depot-node").parentElement.style.display =
+        "block";
+
+      // Store the extracted attributes in hidden fields
+      document.getElementById("edge-weight-type").value = edgeWeightType;
+      document.getElementById("type").value = type;
+
+      const capacityElement = document.getElementById("capacity").parentElement;
+      const customerDemandsElement =
+        document.getElementById("customer-demands").parentElement;
+
+      if (type === "TSP") {
+        capacityElement.style.display = "none";
+        customerDemandsElement.style.display = "none";
+        document
+          .getElementById("coordinates")
+          .setAttribute(
+            "placeholder",
+            "Enter coordinates as numbers (one per line, format: latitude longitude)"
+          );
+      } else {
+        capacityElement.style.display = "block";
+        customerDemandsElement.style.display = "block";
+        document
+          .getElementById("coordinates")
+          .setAttribute(
+            "placeholder",
+            "Enter coordinates as numbers (one per line, format: x y)"
+          );
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading example VRP file:", error);
+      alert("An error occurred while loading the example VRP file.");
+    });
+});
+
+document.getElementById("example-tsp").addEventListener("click", function () {
+  fetch("examples/example.tsp")
+    .then((response) => response.text())
+    .then((data) => {
+      const lines = data.split("\n");
+      const coordinates = [];
+      let edgeWeightType = null;
+      let type = null;
+      let inNodeCoordSection = false;
+
+      lines.forEach((line) => {
+        line = line.trim();
+        if (line.startsWith("NODE_COORD_SECTION")) {
+          inNodeCoordSection = true;
+        } else if (line.startsWith("EOF")) {
+          inNodeCoordSection = false;
+        } else if (line.startsWith("EDGE_WEIGHT_TYPE")) {
+          edgeWeightType = line.split(":")[1].trim();
+        } else if (line.startsWith("TYPE")) {
+          type = line.split(":")[1].trim();
+        } else if (inNodeCoordSection) {
+          const parts = line.split(/\s+/);
+          if (parts.length === 3) {
+            coordinates.push(parts.slice(1).join(" "));
+          }
+        }
+      });
+
+      document.getElementById("coordinates").value = coordinates.join("\n");
+      document.getElementById("customer-demands").value = "";
+      document.getElementById("depot-node").parentElement.style.display =
+        "none";
+      document.getElementById("capacity").value = "";
+
+      // Store the extracted attributes in hidden fields
+      document.getElementById("edge-weight-type").value = edgeWeightType;
+      document.getElementById("type").value = type;
+
+      const capacityElement = document.getElementById("capacity").parentElement;
+      const customerDemandsElement =
+        document.getElementById("customer-demands").parentElement;
+
+      capacityElement.style.display = "none";
+      customerDemandsElement.style.display = "none";
+      document
+        .getElementById("coordinates")
+        .setAttribute(
+          "placeholder",
+          "Enter coordinates as numbers (one per line, format: latitude longitude)"
+        );
+    })
+    .catch((error) => {
+      console.error("Error loading example TSP file:", error);
+      alert("An error occurred while loading the example TSP file.");
+    });
 });

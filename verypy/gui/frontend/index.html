@@ -16,6 +16,10 @@
                     <h2>Problem Input</h2>
                 </div>
                 <div class="card-content">
+                    <div class="button-group">
+                        <button id="example-vrp">Use Example VRP</button>
+                        <button id="example-tsp">Use Example TSP</button>
+                    </div>
                     <div class="form-group">
                         <label for="vrp-file">Upload file (.vrp or .tsp)</label>
                         <input type="file" id="vrp-file" accept=".vrp,.tsp">
@@ -50,6 +54,10 @@
                         <label for="L">Maximum route length/duration/cost</label>
                         <input type="number" id="L" placeholder="Enter route length/duration/cost constraint (optional)">
                     </div>
+                    <div class="form-group">
+                        <label for="depot-node">Depot Node</label>
+                        <input type="number" id="depot-node" min="1" value="1" placeholder="Enter depot node (1 or above)">
+                    </div>
                     <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
                         <label for="single" style="margin-bottom: 0;">Single Iteration</label>
                         <input type="checkbox" id="single" checked>
@@ -64,8 +72,11 @@
                             <option value="">Choose an algorithm</option>
                         </select>
                     </div>
-                    <button id="solve">Solve VRP</button>
-                    <button class="reset" id="reset">Reset</button>
+                   <div class="button-group">
+                        <button id="solve">Solve VRP</button>
+                        <button class="reset" id="reset">Reset</button>
+                   </div>
+
                 </div>
             </div>
 

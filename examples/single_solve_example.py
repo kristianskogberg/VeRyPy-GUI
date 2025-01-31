@@ -11,15 +11,15 @@ import verypy.cvrp_io as cvrp_io
 from verypy.classic_heuristics.parallel_savings import parallel_savings_init
 from verypy.util import sol2routes
 
-import os 
+import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
-E_n51_k5_path = os.path.join(dir_path, "E-n51-k5.vrp")
+E_n51_k5_path = os.path.join(dir_path, "example.vrp")
 
 problem = cvrp_io.read_TSPLIB_CVRP(E_n51_k5_path)
 
 solution = parallel_savings_init(
-    D=problem.distance_matrix, 
-    d=problem.customer_demands, 
+    D=problem.distance_matrix,
+    d=problem.customer_demands,
     C=problem.capacity_constraint)
 
 for route_idx, route in enumerate(sol2routes(solution)):

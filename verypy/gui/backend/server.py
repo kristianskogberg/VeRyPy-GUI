@@ -36,8 +36,9 @@ def create_temp_vrp_file(params):
             temp_vrp_file.write(f"DEMAND_SECTION\n".encode())
             for i, demand in enumerate(customer_demands):
                 temp_vrp_file.write(f"{i + 1} {demand}\n".encode())
+        depot_node = params.get('depot_node', 1)
         temp_vrp_file.write(f"DEPOT_SECTION\n".encode())
-        temp_vrp_file.write(f"1\n-1\nEOF\n".encode())
+        temp_vrp_file.write(f"{depot_node}\n-1\nEOF\n".encode())
 
         # Log the contents of the temporary .vrp file
         temp_vrp_file.seek(0)
