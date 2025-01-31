@@ -118,18 +118,16 @@ document.getElementById("type").addEventListener("change", function () {
   const capacityElement = document.getElementById("capacity").parentElement;
   const customerDemandsElement =
     document.getElementById("customer-demands").parentElement;
-  const depotNodeElement = document.getElementById("depot-node").parentElement;
 
   if (type === "TSP") {
     capacityElement.style.display = "none";
     customerDemandsElement.style.display = "none";
-    depotNodeElement.style.display = "none";
+    document.getElementById("depot-node").value = "1";
     document.getElementById("coordinates").placeholder =
       "Enter coordinates as numbers (one per line, format: latitude longitude)";
   } else {
     capacityElement.style.display = "block";
     customerDemandsElement.style.display = "block";
-    depotNodeElement.style.display = "block";
     document.getElementById("coordinates").placeholder =
       "Enter coordinates as numbers (one per line, format: x y)";
   }
@@ -611,8 +609,6 @@ document.getElementById("example-vrp").addEventListener("click", function () {
         customerDemands.join("\n");
       document.getElementById("capacity").value = capacity;
       document.getElementById("depot-node").value = depotNode;
-      document.getElementById("depot-node").parentElement.style.display =
-        "block";
 
       // Store the extracted attributes in hidden fields
       document.getElementById("edge-weight-type").value = edgeWeightType;
@@ -678,9 +674,8 @@ document.getElementById("example-tsp").addEventListener("click", function () {
 
       document.getElementById("coordinates").value = coordinates.join("\n");
       document.getElementById("customer-demands").value = "";
-      document.getElementById("depot-node").parentElement.style.display =
-        "none";
       document.getElementById("capacity").value = "";
+      document.getElementById("depot-node").value = "1";
 
       // Store the extracted attributes in hidden fields
       document.getElementById("edge-weight-type").value = edgeWeightType;
